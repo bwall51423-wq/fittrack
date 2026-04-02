@@ -1,4 +1,4 @@
-const CACHE = 'fittrack-v2';
+const CACHE = 'fittrack-v3';
 const FILES = ['./', './index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {

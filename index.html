@@ -455,6 +455,64 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 1px; }
 
+        /* ---- PERIOD FILTER ---- */
+        .period-row { display: flex; gap: 6px; }
+        .period-btn {
+            padding: 5px 12px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: transparent;
+            color: var(--text2);
+            font-size: 11px; font-weight: 700;
+            cursor: pointer; font-family: inherit;
+            transition: all 0.15s;
+        }
+        .period-btn.active { border-color: var(--primary); color: var(--primary); background: rgba(255,107,53,0.08); }
+
+        /* ---- CHARTS ---- */
+        .chart-canvas { width: 100%; height: 160px; display: block; }
+        .chart-legend { display: flex; gap: 16px; margin-top: 10px; justify-content: center; flex-wrap: wrap; }
+        .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+        .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+        /* ---- BODY WEIGHT PAGE ---- */
+        .bw-hist-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .bw-hist-row:last-child { border-bottom: none; }
+        .bw-del-btn {
+            width: 26px; height: 26px;
+            background: none; border: none;
+            color: var(--text3); cursor: pointer;
+            font-size: 20px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 6px;
+        }
+        .bw-del-btn:active { color: var(--red); }
+
+        /* ---- 1RM CARD ---- */
+        .rm-card {
+            background: rgba(76,175,80,0.07);
+            border: 1px solid rgba(76,175,80,0.28);
+            border-radius: 14px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+        .rm-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+        .rm-stat {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 8px;
+            text-align: center;
+        }
+        .rm-val { font-size: 24px; font-weight: 800; color: var(--green); line-height: 1.1; }
+        .rm-lbl { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 3px; }
+
         /* ---- PB PAGE ---- */
         .pb-trophy {
             background: linear-gradient(135deg, rgba(255,107,53,0.12), rgba(255,107,53,0.03));
@@ -598,6 +656,66 @@
     </div>
 
     <!-- ============================================================
+         BODY PAGE
+    ============================================================ -->
+    <div id="page-body" class="page">
+
+        <div class="stats-row">
+            <div class="stat-box">
+                <div class="stat-num" id="bw-current">—</div>
+                <div class="stat-lbl">Current (kg)</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-num" id="bw-change" style="font-size:22px">—</div>
+                <div class="stat-lbl">Change</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-num" id="bw-lowest">—</div>
+                <div class="stat-lbl">Lowest (kg)</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <div class="card-title" style="margin:0">Progress</div>
+                <div class="period-row">
+                    <button class="period-btn active" id="bwp-1m" onclick="setBWPeriod('1m')">1M</button>
+                    <button class="period-btn" id="bwp-3m" onclick="setBWPeriod('3m')">3M</button>
+                    <button class="period-btn" id="bwp-6m" onclick="setBWPeriod('6m')">6M</button>
+                    <button class="period-btn" id="bwp-all" onclick="setBWPeriod('all')">All</button>
+                </div>
+            </div>
+            <canvas class="chart-canvas" id="bw-chart"></canvas>
+            <div class="chart-legend" id="bw-legend"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Log Entry</div>
+            <div class="two-col">
+                <div class="field">
+                    <label>Date</label>
+                    <input type="date" id="bw-date" autocomplete="off">
+                </div>
+                <div class="field">
+                    <label>Weight (kg)</label>
+                    <input type="number" id="bw-weight" placeholder="e.g. 80.5" step="0.1" min="0" autocomplete="off">
+                </div>
+            </div>
+            <div class="field">
+                <label>Body Fat % <span style="color:var(--text3);font-weight:400;text-transform:none">(optional)</span></label>
+                <input type="number" id="bw-bf" placeholder="e.g. 18.5" step="0.1" min="0" max="100" autocomplete="off">
+            </div>
+            <button class="btn btn-primary" onclick="saveBWEntry()" style="margin-top:4px">Save Entry</button>
+        </div>
+
+        <div class="card">
+            <div class="card-title">History</div>
+            <div id="bw-history"><div style="color:var(--text3);font-size:13px;text-align:center;padding:16px 0">No entries yet</div></div>
+        </div>
+
+    </div>
+
+    <!-- ============================================================
          PBs PAGE
     ============================================================ -->
     <div id="page-pbs" class="page">
@@ -705,6 +823,14 @@
                 <path d="M6 4h12v8a6 6 0 0 1-12 0V4z"/>
             </svg>
             PBs
+        </button>
+        <button class="bnav-btn" id="nav-body" onclick="showPage('body')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/>
+                <path d="M6.5 8h11l1 7h-13z"/>
+                <path d="M9 15l-1 7M15 15l1 7"/>
+            </svg>
+            Body
         </button>
     </nav>
 </div>
@@ -835,6 +961,7 @@ function showPage(p) {
     document.getElementById('nav-' + p).classList.add('active');
     if (p === 'calendar') renderCal();
     if (p === 'pbs') buildPBSel();
+    if (p === 'body') renderBodyPage();
 }
 
 // ============================
@@ -1117,13 +1244,35 @@ function renderPBWeighted(entries) {
         return best;
     }, entries[0]);
 
-    const pbWeight = pb.c ? pb.c + 'kg' : '—';
-    const pbSets   = pb.a || '—';
-    const pbReps   = pb.b || '—';
+    const pbSets = pb.a || '—';
+    const pbReps = pb.b || '—';
+
+    // 1RM / 3RM via Epley formula: 1RM = w * (1 + r/30)
+    const w = parseFloat(pb.c) || 0;
+    const r = parseFloat(pb.b) || 0;
+    let rmHtml = '';
+    if (w > 0 && r > 0) {
+        const oneRM  = r === 1 ? w : Math.round(w * (1 + r / 30));
+        const threeRM = Math.round(oneRM / 1.1);
+        rmHtml = `
+        <div class="rm-card">
+            <div class="card-title" style="margin-bottom:10px">Estimated Max (Epley)</div>
+            <div class="rm-row">
+                <div class="rm-stat"><div class="rm-val">${oneRM}kg</div><div class="rm-lbl">1 Rep Max</div></div>
+                <div class="rm-stat"><div class="rm-val">${threeRM}kg</div><div class="rm-lbl">3 Rep Max</div></div>
+            </div>
+            <div style="font-size:10px;color:var(--text3);text-align:center">Based on ${r} reps @ ${w}kg</div>
+        </div>`;
+    }
+
+    // Volume per session (sets × reps × kg), last 20 sessions sorted by date
+    const volEntries = [...entries].sort((a,b) => a.date.localeCompare(b.date)).slice(-20);
+    const volData    = volEntries.map(e => (parseFloat(e.a)||0) * (parseFloat(e.b)||0) * (parseFloat(e.c)||0));
+    const volLabels  = volEntries.map(e => e.date.slice(5));
+    const hasVol     = volData.some(v => v > 0);
 
     // History sorted newest first
     const hist = [...entries].sort((a,b) => b.date.localeCompare(a.date));
-
     let histHtml = '';
     hist.forEach(e => {
         const isPB = e === pb;
@@ -1152,10 +1301,22 @@ function renderPBWeighted(entries) {
             </div>
             <button class="btn btn-outline btn-sm" onclick="goToDate('${pb.date}')" style="margin:0;width:auto;display:inline-block;padding:9px 22px">View Workout</button>
         </div>
+        ${rmHtml}
+        ${hasVol ? `<div class="card">
+            <div class="card-title">Volume Per Session (kg)</div>
+            <canvas class="chart-canvas" id="vol-chart"></canvas>
+        </div>` : ''}
         <div class="card">
             <div class="card-title">All Sessions (${entries.length})</div>
             ${histHtml}
         </div>`;
+
+    if (hasVol) {
+        requestAnimationFrame(() => {
+            const c = document.getElementById('vol-chart');
+            if (c) drawBarChart(c, volData, volLabels, '#FF6B35');
+        });
+    }
 }
 
 function renderPBCardio(entries) {
@@ -1243,6 +1404,280 @@ function goToDate(date) {
     calMonth = parseInt(date.slice(5,7)) - 1;
     showPage('calendar');
     renderCal();
+}
+
+// ============================
+// CHART UTILITIES
+// ============================
+function drawLineChart(canvas, datasets, xLabels) {
+    const dpr = window.devicePixelRatio || 1;
+    const cw  = canvas.offsetWidth;
+    const ch  = canvas.offsetHeight;
+    canvas.width  = cw * dpr;
+    canvas.height = ch * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    const PAD = { top:12, right:12, bottom:28, left:42 };
+    const pw = cw - PAD.left - PAD.right;
+    const ph = ch - PAD.top  - PAD.bottom;
+
+    const allVals = datasets.flatMap(ds => ds.data.filter(v => v != null));
+    if (!allVals.length) return;
+    const minV  = Math.min(...allVals);
+    const maxV  = Math.max(...allVals);
+    const range = maxV - minV || 1;
+    const yMin  = minV - range * 0.08;
+    const yMax  = maxV + range * 0.08;
+    const n     = xLabels.length;
+
+    const toX = i => PAD.left + (n > 1 ? (i / (n-1)) * pw : pw/2);
+    const toY = v => PAD.top  + (1 - (v - yMin) / (yMax - yMin)) * ph;
+
+    // Grid + Y labels
+    ctx.font = '10px -apple-system,sans-serif';
+    for (let i = 0; i <= 4; i++) {
+        const y = PAD.top + (i / 4) * ph;
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + pw, y); ctx.stroke();
+        const val = yMax - (i / 4) * (yMax - yMin);
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.textAlign = 'right';
+        ctx.fillText(Math.round(val * 10) / 10, PAD.left - 4, y + 4);
+    }
+
+    // X labels (up to 6)
+    const xStep = Math.max(1, Math.ceil(n / 6));
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.textAlign = 'center';
+    xLabels.forEach((lbl, i) => {
+        if (i === 0 || i === n-1 || i % xStep === 0)
+            ctx.fillText(lbl, toX(i), ch - PAD.bottom + 14);
+    });
+
+    // Lines + dots
+    datasets.forEach(ds => {
+        const pts = ds.data.map((v, i) => v != null ? { x: toX(i), y: toY(v) } : null);
+        ctx.strokeStyle = ds.color;
+        ctx.lineWidth = 2;
+        ctx.lineJoin = 'round';
+        ctx.lineCap  = 'round';
+        ctx.beginPath();
+        let started = false;
+        pts.forEach(pt => {
+            if (!pt) { started = false; return; }
+            if (!started) { ctx.moveTo(pt.x, pt.y); started = true; }
+            else ctx.lineTo(pt.x, pt.y);
+        });
+        ctx.stroke();
+        pts.forEach(pt => {
+            if (!pt) return;
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
+            ctx.fillStyle = ds.color;
+            ctx.fill();
+        });
+    });
+}
+
+function drawBarChart(canvas, data, xLabels, color) {
+    const dpr = window.devicePixelRatio || 1;
+    const cw  = canvas.offsetWidth;
+    const ch  = canvas.offsetHeight;
+    canvas.width  = cw * dpr;
+    canvas.height = ch * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    const PAD = { top:12, right:12, bottom:28, left:48 };
+    const pw  = cw - PAD.left - PAD.right;
+    const ph  = ch - PAD.top  - PAD.bottom;
+    const n   = data.length;
+    if (!n) return;
+
+    const maxV = Math.max(...data) || 1;
+    const yMax = maxV * 1.12;
+    const barW = Math.max(4, (pw / n) - 3);
+
+    const toX = i => PAD.left + (i / n) * pw + ((pw / n) - barW) / 2;
+    const toH = v => (v / yMax) * ph;
+
+    // Grid + Y labels
+    ctx.font = '10px -apple-system,sans-serif';
+    for (let i = 0; i <= 4; i++) {
+        const y = PAD.top + (i / 4) * ph;
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + pw, y); ctx.stroke();
+        const val = yMax - (i / 4) * yMax;
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.textAlign = 'right';
+        ctx.fillText(val >= 1000 ? (Math.round(val/100)/10)+'k' : Math.round(val), PAD.left - 4, y + 4);
+    }
+
+    // X labels (up to 6)
+    const xStep = Math.max(1, Math.ceil(n / 6));
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.textAlign = 'center';
+    xLabels.forEach((lbl, i) => {
+        if (i === 0 || i === n-1 || i % xStep === 0)
+            ctx.fillText(lbl, toX(i) + barW/2, ch - PAD.bottom + 14);
+    });
+
+    // Bars
+    data.forEach((v, i) => {
+        const h = toH(v);
+        const x = toX(i);
+        const y = PAD.top + ph - h;
+        ctx.fillStyle = color || '#FF6B35';
+        ctx.beginPath();
+        const r = Math.min(3, barW / 2);
+        if (ctx.roundRect) {
+            ctx.roundRect(x, y, barW, h, [r, r, 0, 0]);
+        } else {
+            ctx.rect(x, y, barW, h);
+        }
+        ctx.fill();
+    });
+}
+
+// ============================
+// BODY WEIGHT TRACKER
+// ============================
+const getBW     = () => getData('ft_bw', {});
+const saveBWRaw = v  => setData('ft_bw', v);
+
+let bwPeriod = '1m';
+
+function setBWPeriod(p) {
+    bwPeriod = p;
+    ['1m','3m','6m','all'].forEach(x =>
+        document.getElementById('bwp-'+x).classList.toggle('active', x === p)
+    );
+    renderBodyPage();
+}
+
+function renderBodyPage() {
+    document.getElementById('bw-date').value = today();
+    const all = getBW();
+    const entries = Object.entries(all)
+        .sort((a,b) => a[0].localeCompare(b[0]))
+        .map(([date, v]) => ({ date, w: v.w, bf: v.bf ?? null }));
+
+    // Period filter
+    const now = new Date();
+    const cutoff = new Date(now);
+    if      (bwPeriod === '1m')  cutoff.setMonth(now.getMonth() - 1);
+    else if (bwPeriod === '3m')  cutoff.setMonth(now.getMonth() - 3);
+    else if (bwPeriod === '6m')  cutoff.setMonth(now.getMonth() - 6);
+    else                         cutoff.setFullYear(2000);
+    const filtered = entries.filter(e => new Date(e.date + 'T12:00:00') >= cutoff);
+
+    // Stats
+    const latest = entries[entries.length - 1] || null;
+    const first  = entries[0] || null;
+    const lowest = entries.length ? entries.reduce((m,e) => e.w < m.w ? e : m, entries[0]) : null;
+
+    const curEl = document.getElementById('bw-current');
+    const chgEl = document.getElementById('bw-change');
+    const lowEl = document.getElementById('bw-lowest');
+
+    if (latest) {
+        curEl.textContent = latest.w;
+        lowEl.textContent = lowest.w;
+        if (entries.length > 1) {
+            const diff = (latest.w - first.w).toFixed(1);
+            chgEl.textContent = (diff > 0 ? '+' : '') + diff + 'kg';
+            chgEl.style.color = diff > 0 ? 'var(--red)' : diff < 0 ? 'var(--green)' : 'var(--primary)';
+        } else {
+            chgEl.textContent = '—';
+            chgEl.style.color = '';
+        }
+    } else {
+        curEl.textContent = '—';
+        chgEl.textContent = '—';
+        lowEl.textContent = '—';
+        chgEl.style.color = '';
+    }
+
+    // Chart
+    const chartData = filtered.length >= 2 ? filtered : entries.slice(-30);
+    const hasBF = chartData.some(e => e.bf != null);
+    if (chartData.length >= 2) {
+        const datasets = [
+            { data: chartData.map(e => e.w),   color: '#FF6B35', label: 'Weight (kg)' },
+            ...(hasBF ? [{ data: chartData.map(e => e.bf), color: '#2196F3', label: 'Body Fat %' }] : [])
+        ];
+        const labels = chartData.map(e => e.date.slice(5));
+        requestAnimationFrame(() => {
+            const c = document.getElementById('bw-chart');
+            if (c) {
+                drawLineChart(c, datasets, labels);
+                document.getElementById('bw-legend').innerHTML = datasets.map(ds =>
+                    `<div class="legend-item"><div class="legend-dot" style="background:${ds.color}"></div>${ds.label}</div>`
+                ).join('');
+            }
+        });
+    } else {
+        requestAnimationFrame(() => {
+            const c = document.getElementById('bw-chart');
+            if (!c) return;
+            const dpr = window.devicePixelRatio || 1;
+            c.width  = c.offsetWidth  * dpr;
+            c.height = c.offsetHeight * dpr;
+            const ctx = c.getContext('2d');
+            ctx.scale(dpr, dpr);
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            ctx.font = '13px -apple-system,sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Log at least 2 entries to see chart', c.offsetWidth/2, c.offsetHeight/2);
+            document.getElementById('bw-legend').innerHTML = '';
+        });
+    }
+
+    // History (newest first, max 40)
+    const histEl = document.getElementById('bw-history');
+    if (!entries.length) {
+        histEl.innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:16px 0">No entries yet</div>';
+        return;
+    }
+    histEl.innerHTML = [...entries].reverse().slice(0, 40).map(e => `
+        <div class="bw-hist-row">
+            <div>
+                <div style="font-size:13px;font-weight:600">${fmtDate(e.date)}</div>
+                ${e.bf != null ? `<div style="font-size:11px;color:var(--text3);margin-top:2px">Body fat: ${e.bf}%</div>` : ''}
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+                <div style="font-size:18px;font-weight:800;color:var(--primary)">${e.w} kg</div>
+                <button class="bw-del-btn" onclick="deleteBWEntry('${e.date}')">×</button>
+            </div>
+        </div>`).join('');
+}
+
+function saveBWEntry() {
+    const date = document.getElementById('bw-date').value;
+    if (!date) { showToast('Pick a date'); return; }
+    const w = parseFloat(document.getElementById('bw-weight').value);
+    if (!w || w <= 0) { showToast('Enter a valid weight'); return; }
+    const bf = parseFloat(document.getElementById('bw-bf').value);
+    const data = getBW();
+    data[date] = { w, ...(bf > 0 ? { bf } : {}) };
+    saveBWRaw(data);
+    document.getElementById('bw-weight').value = '';
+    document.getElementById('bw-bf').value = '';
+    showToast('Saved!', 'var(--green)');
+    renderBodyPage();
+}
+
+function deleteBWEntry(date) {
+    confirm2(`Delete entry for ${fmtDate(date)}?`, 'Delete', () => {
+        const data = getBW();
+        delete data[date];
+        saveBWRaw(data);
+        renderBodyPage();
+        showToast('Deleted');
+    });
 }
 
 // ============================
