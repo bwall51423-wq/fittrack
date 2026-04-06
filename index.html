@@ -577,6 +577,65 @@
         }
         .pb-dist-btn.active { border-color: var(--primary); color: var(--primary); background: rgba(255,107,53,0.08); }
         .pb-cardio-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+
+        /* ---- REST TIMER ---- */
+        .rest-presets { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+        .rest-preset {
+            padding: 7px 12px;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            background: transparent;
+            color: var(--text2);
+            font-size: 12px; font-weight: 700;
+            cursor: pointer; font-family: inherit;
+            transition: all 0.15s;
+        }
+        .rest-preset:active { background: var(--surface2); }
+        .rest-preset.active { border-color: var(--primary); color: var(--primary); background: rgba(255,107,53,0.08); }
+        .rest-display { font-size: 36px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--primary); line-height: 1; }
+
+        /* ---- DUP BUTTON ---- */
+        .td-del { width: 54px; }
+        .dup-btn {
+            width: 24px; height: 28px;
+            background: none; border: none;
+            color: var(--text3); cursor: pointer;
+            border-radius: 6px; font-size: 14px;
+            display: flex; align-items: center; justify-content: center;
+            transition: color 0.15s;
+        }
+        .dup-btn:active { color: var(--blue); }
+
+        /* ---- TAGS ---- */
+        .row-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+        .tag-chip {
+            display: inline-flex; align-items: center; gap: 3px;
+            padding: 2px 7px; border-radius: 10px;
+            background: rgba(33,150,243,0.12);
+            border: 1px solid rgba(33,150,243,0.3);
+            color: var(--blue); font-size: 10px; font-weight: 700;
+            cursor: pointer; white-space: nowrap;
+            transition: all 0.12s;
+        }
+        .tag-chip:active { background: rgba(33,150,243,0.25); }
+        .tag-add-btn {
+            padding: 2px 7px; border-radius: 10px;
+            border: 1px dashed rgba(255,255,255,0.2);
+            background: transparent; color: var(--text3);
+            font-size: 10px; font-weight: 700; cursor: pointer;
+            font-family: inherit; transition: all 0.12s;
+        }
+        .tag-add-btn:active { border-color: var(--blue); color: var(--blue); }
+        .tag-pick-chip {
+            padding: 8px 14px; border-radius: 20px;
+            border: 1px solid var(--border);
+            background: transparent; color: var(--text2);
+            font-size: 12px; font-weight: 700;
+            cursor: pointer; font-family: inherit;
+            transition: all 0.15s;
+        }
+        .tag-pick-chip.active { border-color: var(--blue); color: var(--blue); background: rgba(33,150,243,0.1); }
+        .tag-pick-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
     </style>
 </head>
 <body>
@@ -612,6 +671,21 @@
         </div>
 
         <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div class="card-title" style="margin:0">Rest Timer</div>
+                <div class="rest-display" id="rt-display">—</div>
+            </div>
+            <div class="rest-presets" id="rest-presets">
+                <button class="rest-preset" onclick="startRest(30)">30s</button>
+                <button class="rest-preset" onclick="startRest(60)">1m</button>
+                <button class="rest-preset" onclick="startRest(90)">90s</button>
+                <button class="rest-preset" onclick="startRest(120)">2m</button>
+                <button class="rest-preset" onclick="startRest(180)">3m</button>
+                <button class="rest-preset" id="rt-stop-btn" onclick="stopRest()" style="display:none;border-color:var(--red);color:var(--red)">Stop</button>
+            </div>
+        </div>
+
+        <div class="card">
             <div class="card-title">Exercises</div>
             <div class="table-wrap">
                 <table>
@@ -620,6 +694,10 @@
                 </table>
             </div>
             <button class="btn btn-add" onclick="addRow()">+ Add Exercise</button>
+            <button class="btn btn-add" id="btn-intervals" onclick="openIntervalBuilder()" style="margin-top:6px;border-color:rgba(33,150,243,0.4);color:var(--blue);background:rgba(33,150,243,0.05)">⚡ Build Cardio Intervals</button>
+            <div style="display:flex;justify-content:flex-end;margin-top:8px">
+                <button class="tag-add-btn" style="font-size:11px;padding:4px 10px" onclick="openManageTags()">Manage Tags…</button>
+            </div>
         </div>
 
         <div class="card">
@@ -908,6 +986,68 @@
     </div>
 </div>
 
+<!-- ---- MODAL: Interval Builder ---- -->
+<div class="overlay" id="ov-intervals" onclick="closeOv('ov-intervals')">
+    <div class="sheet" onclick="event.stopPropagation()">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">Build Cardio Intervals</div>
+        <div class="field">
+            <label>Activity</label>
+            <input type="text" id="int-name" placeholder="e.g. Running" autocomplete="off">
+        </div>
+        <div class="two-col">
+            <div class="field">
+                <label>Speed / Effort</label>
+                <input type="text" id="int-speed" placeholder="e.g. 8.5 km/h" autocomplete="off">
+            </div>
+            <div class="field">
+                <label>Duration each</label>
+                <input type="text" id="int-dur" placeholder="e.g. 4:00" autocomplete="off">
+            </div>
+        </div>
+        <div class="two-col" style="align-items:end">
+            <div class="field">
+                <label>Intervals</label>
+                <div class="stepper">
+                    <button class="step-btn" onclick="adjInt(-1)">−</button>
+                    <div class="step-val" id="int-count-val">4</div>
+                    <button class="step-btn" onclick="adjInt(1)">+</button>
+                </div>
+            </div>
+            <div class="field">
+                <label>Rest between <span style="color:var(--text3);font-weight:400;text-transform:none">(optional)</span></label>
+                <input type="text" id="int-rest" placeholder="e.g. 1:00" autocomplete="off">
+            </div>
+        </div>
+        <button class="btn btn-primary" onclick="buildIntervals()" style="margin-top:12px">Add to Workout</button>
+    </div>
+</div>
+
+<!-- ---- MODAL: Tag Picker ---- -->
+<div class="overlay" id="ov-tags" onclick="closeOv('ov-tags')">
+    <div class="sheet" onclick="event.stopPropagation()">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">Add Tags</div>
+        <div class="tag-pick-grid" id="tag-picker-chips"></div>
+        <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
+            <button class="btn btn-outline btn-sm" onclick="closeOv('ov-tags');openManageTags()" style="margin:0;width:auto">Manage Tags…</button>
+        </div>
+    </div>
+</div>
+
+<!-- ---- MODAL: Manage Tags ---- -->
+<div class="overlay" id="ov-manage-tags" onclick="closeOv('ov-manage-tags')">
+    <div class="sheet" onclick="event.stopPropagation()">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">Manage Tags</div>
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+            <input type="text" id="new-tag-inp" placeholder="New tag name…" autocomplete="off" style="flex:1">
+            <button class="btn btn-outline btn-sm" onclick="addNewTag()" style="width:auto;white-space:nowrap;margin:0">Add</button>
+        </div>
+        <div id="manage-tags-list"></div>
+    </div>
+</div>
+
 <!-- ---- CONFIRM DIALOG ---- -->
 <div class="confirm-overlay" id="confirm-overlay">
     <div class="confirm-box">
@@ -1031,6 +1171,7 @@ function addRow(data = {}) {
     const showTog = wType === 'mixed';
     const tr = document.createElement('tr');
     tr.dataset.rtype = rowRType;
+    tr.dataset.tags = JSON.stringify(data.tags || []);
     tr.innerHTML = `
         <td class="td-name">
             <div class="row-type-tog" style="display:${showTog?'flex':'none'}">
@@ -1040,6 +1181,7 @@ function addRow(data = {}) {
             <input type="text" class="ex-input" placeholder="${isCardio ? 'Activity' : 'Exercise'}"
                 value="${esc(data.name||'')}" autocomplete="off"
                 style="width:100%">
+            <div class="row-tags"></div>
         </td>
         <td class="td-num">
             <input type="text" placeholder="${isCardio ? 'Dist/Spd' : 'Sets'}"
@@ -1054,7 +1196,10 @@ function addRow(data = {}) {
                 value="${esc(data.c||'')}" autocomplete="off">
         </td>
         <td class="td-del">
-            <button class="del-btn" onclick="this.closest('tr').remove()">×</button>
+            <div style="display:flex;gap:2px">
+                <button class="dup-btn" onclick="duplicateRow(this)" title="Duplicate">⧉</button>
+                <button class="del-btn" onclick="this.closest('tr').remove()">×</button>
+            </div>
         </td>`;
 
     // Long press on exercise name to view history
@@ -1068,6 +1213,7 @@ function addRow(data = {}) {
     nameInput.addEventListener('touchend', () => clearTimeout(pressT));
     nameInput.addEventListener('touchmove', () => clearTimeout(pressT));
 
+    renderRowTagDisplay(tr);
     body.appendChild(tr);
 }
 
@@ -1090,6 +1236,8 @@ function getExercises() {
         const inp = row.querySelectorAll('input');
         const ex = { name: inp[0].value.trim(), a: inp[1].value.trim(), b: inp[2].value.trim(), c: inp[3].value.trim() };
         if (wType === 'mixed') ex.rowType = row.dataset.rtype || 'weighted';
+        const tags = JSON.parse(row.dataset.tags || '[]');
+        if (tags.length) ex.tags = tags;
         return ex;
     }).filter(r => r.name);
 }
@@ -1801,7 +1949,8 @@ function renderDayDetail() {
         const d = exIsC
             ? `${ex.a||''} ${ex.b||''}`
             : `${ex.a||''}×${ex.b||''}${ex.c ? ' @ '+ex.c+'kg' : ''}`;
-        exHtml += `<div>• ${ex.name} <span style="color:var(--text3)">${d}</span></div>`;
+        const tagStr = ex.tags && ex.tags.length ? ` <span style="color:var(--blue);font-size:10px">${ex.tags.join(' · ')}</span>` : '';
+        exHtml += `<div>• ${esc(ex.name)}${tagStr} <span style="color:var(--text3)">${d}</span></div>`;
     });
     if ((wo.exercises||[]).length > 5) exHtml += `<div style="color:var(--text3);font-size:11px">+${wo.exercises.length-5} more…</div>`;
 
@@ -2037,6 +2186,203 @@ function beepComplete() {
     setTimeout(()=>tone(784,160),400); setTimeout(()=>tone(1047,500),600);
 }
 function vib(p) { try { navigator.vibrate && navigator.vibrate(p); } catch(e){} }
+
+// ============================
+// REST TIMER
+// ============================
+let restState = { iv: null, remaining: 0, total: 0, active: false };
+
+function startRest(secs) {
+    if (restState.iv) clearInterval(restState.iv);
+    restState.remaining = secs;
+    restState.total = secs;
+    restState.active = true;
+    document.querySelectorAll('.rest-preset').forEach(b => b.classList.remove('active'));
+    const presets = [30,60,90,120,180];
+    const idx = presets.indexOf(secs);
+    if (idx >= 0) document.querySelectorAll('.rest-preset')[idx].classList.add('active');
+    document.getElementById('rt-stop-btn').style.display = '';
+    updateRestUI();
+    restState.iv = setInterval(restTick, 1000);
+    vib(50);
+}
+
+function stopRest() {
+    clearInterval(restState.iv);
+    restState.iv = null;
+    restState.active = false;
+    document.getElementById('rt-display').textContent = '—';
+    document.getElementById('rt-display').style.color = 'var(--primary)';
+    document.getElementById('rt-stop-btn').style.display = 'none';
+    document.querySelectorAll('.rest-preset').forEach(b => b.classList.remove('active'));
+}
+
+function restTick() {
+    restState.remaining--;
+    if (restState.remaining <= 0) {
+        clearInterval(restState.iv);
+        restState.iv = null;
+        restState.active = false;
+        document.getElementById('rt-display').textContent = 'GO!';
+        document.getElementById('rt-display').style.color = 'var(--green)';
+        document.getElementById('rt-stop-btn').style.display = 'none';
+        document.querySelectorAll('.rest-preset').forEach(b => b.classList.remove('active'));
+        tone(880, 150); setTimeout(() => tone(880, 150), 180); setTimeout(() => tone(1100, 300), 360);
+        vib([200, 100, 200]);
+    } else {
+        updateRestUI();
+    }
+}
+
+function updateRestUI() {
+    const el = document.getElementById('rt-display');
+    el.textContent = fmtSec(restState.remaining);
+    const pct = restState.remaining / restState.total;
+    el.style.color = pct < 0.25 ? 'var(--red)' : pct < 0.5 ? '#FF9800' : 'var(--primary)';
+}
+
+// ============================
+// INTERVAL BUILDER
+// ============================
+let intCount = 4;
+
+function openIntervalBuilder() {
+    intCount = 4;
+    document.getElementById('int-count-val').textContent = 4;
+    document.getElementById('int-name').value = '';
+    document.getElementById('int-speed').value = '';
+    document.getElementById('int-dur').value = '';
+    document.getElementById('int-rest').value = '';
+    openOv('ov-intervals');
+}
+
+function adjInt(delta) {
+    intCount = Math.max(1, intCount + delta);
+    document.getElementById('int-count-val').textContent = intCount;
+}
+
+function buildIntervals() {
+    const name = document.getElementById('int-name').value.trim();
+    const speed = document.getElementById('int-speed').value.trim();
+    const dur = document.getElementById('int-dur').value.trim();
+    const rest = document.getElementById('int-rest').value.trim();
+    if (!name) { showToast('Enter an activity name'); return; }
+    // Switch to mixed if currently weighted
+    if (wType === 'weighted') setType('mixed');
+    for (let i = 0; i < intCount; i++) {
+        addRow({ name, a: speed, b: dur, rowType: 'cardio' });
+        if (rest && i < intCount - 1) {
+            addRow({ name: 'Rest', a: '', b: rest, rowType: 'cardio' });
+        }
+    }
+    closeOv('ov-intervals');
+    showToast(`Added ${intCount} intervals`, 'var(--green)');
+}
+
+// ============================
+// DUPLICATE ROW
+// ============================
+function duplicateRow(btn) {
+    const tr = btn.closest('tr');
+    const inp = tr.querySelectorAll('input');
+    addRow({
+        name: inp[0].value,
+        a: inp[1].value,
+        b: inp[2].value,
+        c: inp[3].value,
+        rowType: tr.dataset.rtype || 'weighted',
+        tags: JSON.parse(tr.dataset.tags || '[]')
+    });
+}
+
+// ============================
+// TAGS
+// ============================
+const DEFAULT_TAGS = ['Chest','Back','Shoulders','Biceps','Triceps','Core','Quads','Hamstrings','Glutes','Calves','Cardio','Full Body'];
+const getTags = () => { const t = getData('ft_tags', null); return t || [...DEFAULT_TAGS]; };
+const saveTags = v => setData('ft_tags', v);
+
+let _tagPickerRow = null;
+
+function openTagPicker(btn) {
+    _tagPickerRow = btn.closest('tr');
+    buildTagPickerUI();
+    openOv('ov-tags');
+}
+
+function buildTagPickerUI() {
+    const tags = getTags();
+    const current = JSON.parse(_tagPickerRow.dataset.tags || '[]');
+    document.getElementById('tag-picker-chips').innerHTML = tags.map(t =>
+        `<button class="tag-pick-chip${current.includes(t)?' active':''}" onclick="toggleRowTag('${esc(t)}')">${esc(t)}</button>`
+    ).join('');
+}
+
+function toggleRowTag(tag) {
+    if (!_tagPickerRow) return;
+    const current = JSON.parse(_tagPickerRow.dataset.tags || '[]');
+    const updated = current.includes(tag) ? current.filter(t => t !== tag) : [...current, tag];
+    _tagPickerRow.dataset.tags = JSON.stringify(updated);
+    buildTagPickerUI();
+    renderRowTagDisplay(_tagPickerRow);
+}
+
+function renderRowTagDisplay(tr) {
+    const tags = JSON.parse(tr.dataset.tags || '[]');
+    const el = tr.querySelector('.row-tags');
+    if (!el) return;
+    el.innerHTML = tags.map(t =>
+        `<span class="tag-chip" onclick="removeRowTag(this,'${esc(t)}')">${esc(t)} ×</span>`
+    ).join('') + `<button class="tag-add-btn" onclick="openTagPicker(this)">+ tag</button>`;
+}
+
+function removeRowTag(chip, tag) {
+    const tr = chip.closest('tr');
+    const current = JSON.parse(tr.dataset.tags || '[]');
+    tr.dataset.tags = JSON.stringify(current.filter(t => t !== tag));
+    renderRowTagDisplay(tr);
+}
+
+function openManageTags() {
+    renderManageTagsList();
+    openOv('ov-manage-tags');
+}
+
+function renderManageTagsList() {
+    const tags = getTags();
+    const el = document.getElementById('manage-tags-list');
+    if (!tags.length) {
+        el.innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:16px 0">No tags yet</div>';
+        return;
+    }
+    el.innerHTML = tags.map((t, i) => `
+        <div class="tmpl-item">
+            <span class="tmpl-name">${esc(t)}</span>
+            <button class="del-btn" onclick="deleteTag(${i})">×</button>
+        </div>`).join('');
+}
+
+function addNewTag() {
+    const inp = document.getElementById('new-tag-inp');
+    const name = inp.value.trim();
+    if (!name) return;
+    const tags = getTags();
+    if (tags.map(t=>t.toLowerCase()).includes(name.toLowerCase())) { showToast('Tag already exists'); return; }
+    tags.push(name);
+    saveTags(tags);
+    inp.value = '';
+    renderManageTagsList();
+    showToast('Tag added', 'var(--green)');
+}
+
+function deleteTag(idx) {
+    const tags = getTags();
+    tags.splice(idx, 1);
+    saveTags(tags);
+    renderManageTagsList();
+    if (_tagPickerRow) buildTagPickerUI();
+    showToast('Deleted');
+}
 
 // ============================
 // MODALS
