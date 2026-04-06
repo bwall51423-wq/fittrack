@@ -144,7 +144,7 @@
         .field:last-child { margin-bottom: 0; }
 
         /* ---- TOGGLE ---- */
-        .type-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .type-toggle { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
         .tog-btn {
             padding: 10px 6px;
             border: 2px solid var(--border);
@@ -163,6 +163,24 @@
             color: var(--primary);
             background: rgba(255,107,53,0.08);
         }
+
+        /* ---- ROW TYPE TOGGLE (mixed mode) ---- */
+        .row-type-tog { display: flex; gap: 3px; margin-bottom: 5px; }
+        .rt-btn {
+            padding: 2px 7px;
+            border-radius: 5px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text3);
+            font-size: 9px;
+            font-weight: 800;
+            cursor: pointer;
+            font-family: inherit;
+            letter-spacing: 0.5px;
+            transition: all 0.12s;
+        }
+        .rt-btn.active-w { border-color: var(--primary); color: var(--primary); background: rgba(255,107,53,0.1); }
+        .rt-btn.active-c { border-color: var(--blue); color: var(--blue); background: rgba(33,150,243,0.1); }
 
         /* ---- EXERCISE TABLE ---- */
         .table-wrap { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
@@ -587,7 +605,8 @@
                 </div>
             </div>
             <div class="type-toggle">
-                <button class="tog-btn active" id="btn-weighted" onclick="setType('weighted')">Weighted / Circuits</button>
+                <button class="tog-btn active" id="btn-weighted" onclick="setType('weighted')">Weights</button>
+                <button class="tog-btn" id="btn-mixed" onclick="setType('mixed')">Mixed</button>
                 <button class="tog-btn" id="btn-cardio" onclick="setType('cardio')">Cardio</button>
             </div>
         </div>
@@ -972,9 +991,9 @@ let wType = 'weighted';
 function setType(t) {
     wType = t;
     document.getElementById('btn-weighted').classList.toggle('active', t === 'weighted');
+    document.getElementById('btn-mixed').classList.toggle('active', t === 'mixed');
     document.getElementById('btn-cardio').classList.toggle('active', t === 'cardio');
     renderExHead();
-    // update existing rows
     document.querySelectorAll('#ex-body tr').forEach(row => updateRowType(row));
 }
 
@@ -982,34 +1001,48 @@ function renderExHead() {
     const h = document.getElementById('ex-head');
     if (wType === 'weighted') {
         h.innerHTML = `<th style="text-align:left;min-width:120px">Exercise</th><th>Sets</th><th>Reps</th><th>Wt (kg)</th><th></th>`;
+    } else if (wType === 'cardio') {
+        h.innerHTML = `<th style="text-align:left;min-width:120px">Activity</th><th>Dist/Spd</th><th>Time</th><th style="display:none">Wt</th><th></th>`;
     } else {
-        h.innerHTML = `<th style="text-align:left;min-width:120px">Activity</th><th>Distance</th><th>Time</th><th style="display:none">Wt</th><th></th>`;
+        h.innerHTML = `<th style="text-align:left;min-width:120px">Exercise</th><th>Sets/Dist</th><th>Reps/Time</th><th>Wt (kg)</th><th></th>`;
     }
 }
 
 function updateRowType(row) {
-    const isCardio = wType === 'cardio';
+    const rowRType = row.dataset.rtype || 'weighted';
+    const effectiveType = wType === 'mixed' ? rowRType : wType;
+    const isCardio = effectiveType === 'cardio';
     const inputs = row.querySelectorAll('input');
     if (!inputs[0]) return;
     inputs[0].placeholder = isCardio ? 'Activity' : 'Exercise';
-    inputs[1].placeholder = isCardio ? 'km/mi' : 'Sets';
+    inputs[1].placeholder = isCardio ? 'Dist/Spd' : 'Sets';
     inputs[2].placeholder = isCardio ? 'Time' : 'Reps';
     const wtCell = row.querySelector('.td-wt');
     if (wtCell) wtCell.style.display = isCardio ? 'none' : '';
+    const togWrap = row.querySelector('.row-type-tog');
+    if (togWrap) togWrap.style.display = wType === 'mixed' ? 'flex' : 'none';
 }
 
 function addRow(data = {}) {
     const body = document.getElementById('ex-body');
-    const isCardio = wType === 'cardio';
+    const rowRType = data.rowType || 'weighted';
+    const effectiveType = wType === 'mixed' ? rowRType : wType;
+    const isCardio = effectiveType === 'cardio';
+    const showTog = wType === 'mixed';
     const tr = document.createElement('tr');
+    tr.dataset.rtype = rowRType;
     tr.innerHTML = `
         <td class="td-name">
+            <div class="row-type-tog" style="display:${showTog?'flex':'none'}">
+                <button class="rt-btn${rowRType==='weighted'?' active-w':''}" onclick="setRowType(this,'weighted')">W</button>
+                <button class="rt-btn${rowRType==='cardio'?' active-c':''}" onclick="setRowType(this,'cardio')">C</button>
+            </div>
             <input type="text" class="ex-input" placeholder="${isCardio ? 'Activity' : 'Exercise'}"
                 value="${esc(data.name||'')}" autocomplete="off"
                 style="width:100%">
         </td>
         <td class="td-num">
-            <input type="text" placeholder="${isCardio ? 'km/mi' : 'Sets'}"
+            <input type="text" placeholder="${isCardio ? 'Dist/Spd' : 'Sets'}"
                 value="${esc(data.a||'')}" autocomplete="off">
         </td>
         <td class="td-num">
@@ -1038,12 +1071,26 @@ function addRow(data = {}) {
     body.appendChild(tr);
 }
 
+function setRowType(btn, rtype) {
+    const tr = btn.closest('tr');
+    tr.dataset.rtype = rtype;
+    const tog = tr.querySelector('.row-type-tog');
+    tog.querySelectorAll('.rt-btn').forEach(b => {
+        b.className = 'rt-btn';
+        if (b.textContent === 'W' && rtype === 'weighted') b.className = 'rt-btn active-w';
+        if (b.textContent === 'C' && rtype === 'cardio')   b.className = 'rt-btn active-c';
+    });
+    updateRowType(tr);
+}
+
 function esc(s) { return String(s).replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
 function getExercises() {
     return Array.from(document.querySelectorAll('#ex-body tr')).map(row => {
         const inp = row.querySelectorAll('input');
-        return { name: inp[0].value.trim(), a: inp[1].value.trim(), b: inp[2].value.trim(), c: inp[3].value.trim() };
+        const ex = { name: inp[0].value.trim(), a: inp[1].value.trim(), b: inp[2].value.trim(), c: inp[3].value.trim() };
+        if (wType === 'mixed') ex.rowType = row.dataset.rtype || 'weighted';
+        return ex;
     }).filter(r => r.name);
 }
 
@@ -1071,6 +1118,7 @@ function loadWorkoutToPage(date) {
     document.getElementById('wd-notes').value = wo.notes || '';
     wType = wo.type || 'weighted';
     document.getElementById('btn-weighted').classList.toggle('active', wType === 'weighted');
+    document.getElementById('btn-mixed').classList.toggle('active', wType === 'mixed');
     document.getElementById('btn-cardio').classList.toggle('active', wType === 'cardio');
     renderExHead();
     document.getElementById('ex-body').innerHTML = '';
@@ -1085,6 +1133,7 @@ function clearWorkout() {
     document.getElementById('ex-body').innerHTML = '';
     wType = 'weighted';
     document.getElementById('btn-weighted').classList.add('active');
+    document.getElementById('btn-mixed').classList.remove('active');
     document.getElementById('btn-cardio').classList.remove('active');
     renderExHead();
     addRow();
@@ -1127,6 +1176,7 @@ function loadTemplate() {
     if (!t) return;
     wType = t.type || 'weighted';
     document.getElementById('btn-weighted').classList.toggle('active', wType === 'weighted');
+    document.getElementById('btn-mixed').classList.toggle('active', wType === 'mixed');
     document.getElementById('btn-cardio').classList.toggle('active', wType === 'cardio');
     renderExHead();
     document.getElementById('wd-name').value = t.name;
@@ -1151,11 +1201,11 @@ function showExHistory(name) {
 
     if (!hist.length) { showToast('No history for ' + name); return; }
 
-    const isC = hist[0].type === 'cardio';
     let html = `<div class="sheet-title">${name}</div>
         <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Past Performance</div>`;
     hist.slice(0, 20).forEach(h => {
-        const detail = isC
+        const hIsC = h.rowType === 'cardio' || (!h.rowType && h.type === 'cardio');
+        const detail = hIsC
             ? `${h.a||'—'} · ${h.b||'—'}`
             : `${h.a||'—'} sets × ${h.b||'—'} reps${h.c ? ' @ ' + h.c + 'kg' : ''}`;
         html += `<div class="hist-row">
@@ -1180,7 +1230,7 @@ function buildPBSel() {
     Object.values(wo).forEach(w => {
         (w.exercises||[]).forEach(ex => {
             const key = ex.name.trim().toLowerCase();
-            if (key && !seen.has(key)) seen.set(key, { displayName: ex.name.trim(), type: w.type });
+            if (key && !seen.has(key)) seen.set(key, { displayName: ex.name.trim(), type: ex.rowType || w.type });
         });
     });
     const sorted = [...seen.entries()].sort((a,b) => a[0].localeCompare(b[0]));
@@ -1213,7 +1263,7 @@ function renderPB() {
     Object.entries(wo).sort((a,b) => a[0].localeCompare(b[0])).forEach(([date, w]) => {
         (w.exercises||[]).forEach(ex => {
             if (ex.name.trim().toLowerCase() === key) {
-                entries.push({ date, wName: w.name||'Workout', type: w.type, a: ex.a||'', b: ex.b||'', c: ex.c||'' });
+                entries.push({ date, wName: w.name||'Workout', type: ex.rowType || w.type, a: ex.a||'', b: ex.b||'', c: ex.c||'' });
             }
         });
     });
@@ -1747,7 +1797,8 @@ function renderDayDetail() {
     const isC = wo.type === 'cardio';
     let exHtml = '';
     (wo.exercises||[]).slice(0,5).forEach(ex => {
-        const d = isC
+        const exIsC = ex.rowType === 'cardio' || (!ex.rowType && isC);
+        const d = exIsC
             ? `${ex.a||''} ${ex.b||''}`
             : `${ex.a||''}×${ex.b||''}${ex.c ? ' @ '+ex.c+'kg' : ''}`;
         exHtml += `<div>• ${ex.name} <span style="color:var(--text3)">${d}</span></div>`;
@@ -1757,7 +1808,7 @@ function renderDayDetail() {
     el.innerHTML = `<div class="card">
         <div style="font-size:11px;color:var(--text3);margin-bottom:4px">${fmtDate(calSel)}</div>
         <div class="day-title">${wo.name||'Workout'}</div>
-        <div class="day-meta">${isC ? 'Cardio' : 'Weighted / Circuits'} · ${(wo.exercises||[]).length} exercise${(wo.exercises||[]).length!==1?'s':''}</div>
+        <div class="day-meta">${wo.type==='cardio'?'Cardio':wo.type==='mixed'?'Mixed':'Weighted / Circuits'} · ${(wo.exercises||[]).length} exercise${(wo.exercises||[]).length!==1?'s':''}</div>
         <div class="ex-list">${exHtml}</div>
         ${wo.notes ? `<div class="day-notes">"${wo.notes}"</div>` : ''}
         <div class="day-btns">
