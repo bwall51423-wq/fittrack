@@ -636,6 +636,41 @@
         }
         .tag-pick-chip.active { border-color: var(--blue); color: var(--blue); background: rgba(33,150,243,0.1); }
         .tag-pick-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+
+        /* ---- RATING ---- */
+        .rating-row { display: flex; gap: 8px; margin-top: 6px; }
+        .rating-btn {
+            width: 40px; height: 40px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            background: transparent;
+            color: var(--text3);
+            font-size: 15px; font-weight: 800;
+            cursor: pointer; font-family: inherit;
+            transition: all 0.15s;
+        }
+        .rating-btn.active {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: rgba(255,107,53,0.1);
+        }
+
+        /* ---- NOTE BUTTON ---- */
+        .td-del { width: 76px; }
+        .note-btn {
+            width: 24px; height: 28px;
+            background: none; border: none;
+            color: var(--text3); cursor: pointer;
+            border-radius: 6px; font-size: 13px;
+            display: flex; align-items: center; justify-content: center;
+            transition: color 0.15s;
+        }
+        .note-btn.has-note { color: var(--primary); }
+
+        /* ---- MEASUREMENTS ---- */
+        .meas-bar-row { margin-bottom: 9px; }
+        .meas-bar-track { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; margin-top: 3px; }
+        .meas-bar-fill { height: 100%; border-radius: 3px; background: #9C27B0; transition: width 0.4s; }
     </style>
 </head>
 <body>
@@ -663,10 +698,15 @@
                     <input type="text" id="wd-name" placeholder="e.g. Chest Day" autocomplete="off">
                 </div>
             </div>
-            <div class="type-toggle">
-                <button class="tog-btn active" id="btn-weighted" onclick="setType('weighted')">Weights</button>
-                <button class="tog-btn" id="btn-mixed" onclick="setType('mixed')">Mixed</button>
-                <button class="tog-btn" id="btn-cardio" onclick="setType('cardio')">Cardio</button>
+            <div class="field" style="margin-top:4px;margin-bottom:0">
+                <label>How did it feel?</label>
+                <div class="rating-row" id="rating-row">
+                    <button class="rating-btn" onclick="setRating(1)">1</button>
+                    <button class="rating-btn" onclick="setRating(2)">2</button>
+                    <button class="rating-btn" onclick="setRating(3)">3</button>
+                    <button class="rating-btn" onclick="setRating(4)">4</button>
+                    <button class="rating-btn" onclick="setRating(5)">5</button>
+                </div>
             </div>
         </div>
 
@@ -749,6 +789,11 @@
             <div class="cal-grid" id="cal-grid"></div>
         </div>
 
+        <div id="muscle-stats-card" class="card" style="display:none">
+            <div class="card-title">Most Trained (from tags)</div>
+            <div id="muscle-stats"></div>
+        </div>
+
         <div id="day-detail"></div>
     </div>
 
@@ -808,6 +853,45 @@
         <div class="card">
             <div class="card-title">History</div>
             <div id="bw-history"><div style="color:var(--text3);font-size:13px;text-align:center;padding:16px 0">No entries yet</div></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Log Measurement</div>
+            <div class="two-col">
+                <div class="field">
+                    <label>Type</label>
+                    <input type="text" id="meas-type" list="meas-type-list" placeholder="e.g. Waist" autocomplete="off">
+                    <datalist id="meas-type-list">
+                        <option>Chest</option><option>Waist</option><option>Hips</option>
+                        <option>Neck</option><option>L. Arm</option><option>R. Arm</option>
+                        <option>L. Thigh</option><option>R. Thigh</option>
+                    </datalist>
+                </div>
+                <div class="field">
+                    <label>Value (cm)</label>
+                    <input type="number" id="meas-val" placeholder="e.g. 95" step="0.5" min="0" autocomplete="off">
+                </div>
+            </div>
+            <div class="field">
+                <label>Date</label>
+                <input type="date" id="meas-date" autocomplete="off">
+            </div>
+            <button class="btn btn-primary" onclick="saveMeasEntry()" style="margin-top:4px">Save Measurement</button>
+        </div>
+
+        <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <div class="card-title" style="margin:0">Measurements</div>
+                <select id="meas-type-chart" onchange="measChartType=this.value;renderMeasSection()" style="font-size:12px;padding:5px 8px;width:auto;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text)"></select>
+            </div>
+            <canvas class="chart-canvas" id="meas-chart"></canvas>
+            <div id="meas-history" style="margin-top:10px"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Data</div>
+            <button class="btn btn-outline" onclick="exportData()" style="margin-bottom:8px">⬇ Export Backup (JSON)</button>
+            <button class="btn btn-outline" onclick="importData()">⬆ Import Backup</button>
         </div>
 
     </div>
@@ -986,6 +1070,17 @@
     </div>
 </div>
 
+<!-- ---- MODAL: Exercise Note ---- -->
+<div class="overlay" id="ov-ex-note" onclick="closeOv('ov-ex-note')">
+    <div class="sheet" onclick="event.stopPropagation()">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title" id="ex-note-title">Note</div>
+        <textarea id="ex-note-inp" placeholder="e.g. felt strong, tried closer grip…" style="height:110px"></textarea>
+        <button class="btn btn-primary" onclick="saveExNote()" style="margin-top:12px">Save</button>
+        <button class="btn btn-outline" onclick="clearExNote()" style="margin-top:0">Clear Note</button>
+    </div>
+</div>
+
 <!-- ---- MODAL: Interval Builder ---- -->
 <div class="overlay" id="ov-intervals" onclick="closeOv('ov-intervals')">
     <div class="sheet" onclick="event.stopPropagation()">
@@ -1126,32 +1221,15 @@ function showPage(p) {
 // ============================
 // WORKOUT TYPE
 // ============================
-let wType = 'weighted';
-
-function setType(t) {
-    wType = t;
-    document.getElementById('btn-weighted').classList.toggle('active', t === 'weighted');
-    document.getElementById('btn-mixed').classList.toggle('active', t === 'mixed');
-    document.getElementById('btn-cardio').classList.toggle('active', t === 'cardio');
-    renderExHead();
-    document.querySelectorAll('#ex-body tr').forEach(row => updateRowType(row));
-}
+const wType = 'mixed';
 
 function renderExHead() {
-    const h = document.getElementById('ex-head');
-    if (wType === 'weighted') {
-        h.innerHTML = `<th style="text-align:left;min-width:120px">Exercise</th><th>Sets</th><th>Reps</th><th>Wt (kg)</th><th></th>`;
-    } else if (wType === 'cardio') {
-        h.innerHTML = `<th style="text-align:left;min-width:120px">Activity</th><th>Dist/Spd</th><th>Time</th><th style="display:none">Wt</th><th></th>`;
-    } else {
-        h.innerHTML = `<th style="text-align:left;min-width:120px">Exercise</th><th>Sets/Dist</th><th>Reps/Time</th><th>Wt (kg)</th><th></th>`;
-    }
+    document.getElementById('ex-head').innerHTML =
+        `<th style="text-align:left;min-width:120px">Exercise</th><th>Sets/Dist</th><th>Reps/Time</th><th>Wt (kg)</th><th></th>`;
 }
 
 function updateRowType(row) {
-    const rowRType = row.dataset.rtype || 'weighted';
-    const effectiveType = wType === 'mixed' ? rowRType : wType;
-    const isCardio = effectiveType === 'cardio';
+    const isCardio = (row.dataset.rtype || 'weighted') === 'cardio';
     const inputs = row.querySelectorAll('input');
     if (!inputs[0]) return;
     inputs[0].placeholder = isCardio ? 'Activity' : 'Exercise';
@@ -1159,22 +1237,19 @@ function updateRowType(row) {
     inputs[2].placeholder = isCardio ? 'Time' : 'Reps';
     const wtCell = row.querySelector('.td-wt');
     if (wtCell) wtCell.style.display = isCardio ? 'none' : '';
-    const togWrap = row.querySelector('.row-type-tog');
-    if (togWrap) togWrap.style.display = wType === 'mixed' ? 'flex' : 'none';
 }
 
 function addRow(data = {}) {
     const body = document.getElementById('ex-body');
     const rowRType = data.rowType || 'weighted';
-    const effectiveType = wType === 'mixed' ? rowRType : wType;
-    const isCardio = effectiveType === 'cardio';
-    const showTog = wType === 'mixed';
+    const isCardio = rowRType === 'cardio';
     const tr = document.createElement('tr');
     tr.dataset.rtype = rowRType;
     tr.dataset.tags = JSON.stringify(data.tags || []);
+    tr.dataset.note = data.note || '';
     tr.innerHTML = `
         <td class="td-name">
-            <div class="row-type-tog" style="display:${showTog?'flex':'none'}">
+            <div class="row-type-tog">
                 <button class="rt-btn${rowRType==='weighted'?' active-w':''}" onclick="setRowType(this,'weighted')">W</button>
                 <button class="rt-btn${rowRType==='cardio'?' active-c':''}" onclick="setRowType(this,'cardio')">C</button>
             </div>
@@ -1197,6 +1272,7 @@ function addRow(data = {}) {
         </td>
         <td class="td-del">
             <div style="display:flex;gap:2px">
+                <button class="note-btn" onclick="openExNote(this)" title="Add note">✎</button>
                 <button class="dup-btn" onclick="duplicateRow(this)" title="Duplicate">⧉</button>
                 <button class="del-btn" onclick="this.closest('tr').remove()">×</button>
             </div>
@@ -1214,6 +1290,7 @@ function addRow(data = {}) {
     nameInput.addEventListener('touchmove', () => clearTimeout(pressT));
 
     renderRowTagDisplay(tr);
+    updateNoteBtn(tr);
     body.appendChild(tr);
 }
 
@@ -1234,10 +1311,10 @@ function esc(s) { return String(s).replace(/"/g,'&quot;').replace(/</g,'&lt;'); 
 function getExercises() {
     return Array.from(document.querySelectorAll('#ex-body tr')).map(row => {
         const inp = row.querySelectorAll('input');
-        const ex = { name: inp[0].value.trim(), a: inp[1].value.trim(), b: inp[2].value.trim(), c: inp[3].value.trim() };
-        if (wType === 'mixed') ex.rowType = row.dataset.rtype || 'weighted';
+        const ex = { name: inp[0].value.trim(), a: inp[1].value.trim(), b: inp[2].value.trim(), c: inp[3].value.trim(), rowType: row.dataset.rtype || 'weighted' };
         const tags = JSON.parse(row.dataset.tags || '[]');
         if (tags.length) ex.tags = tags;
+        if (row.dataset.note) ex.note = row.dataset.note;
         return ex;
     }).filter(r => r.name);
 }
@@ -1248,9 +1325,10 @@ function saveWorkout() {
     const wo = getWO();
     wo[date] = {
         name: document.getElementById('wd-name').value.trim() || 'Workout',
-        type: wType,
+        type: 'mixed',
         exercises: getExercises(),
         notes: document.getElementById('wd-notes').value.trim(),
+        rating: wRating || 0,
         ts: Date.now()
     };
     saveWO(wo);
@@ -1264,13 +1342,14 @@ function loadWorkoutToPage(date) {
     document.getElementById('wd-date').value = date;
     document.getElementById('wd-name').value = wo.name || '';
     document.getElementById('wd-notes').value = wo.notes || '';
-    wType = wo.type || 'weighted';
-    document.getElementById('btn-weighted').classList.toggle('active', wType === 'weighted');
-    document.getElementById('btn-mixed').classList.toggle('active', wType === 'mixed');
-    document.getElementById('btn-cardio').classList.toggle('active', wType === 'cardio');
+    setRating(wo.rating || 0);
+    const legacyType = wo.type || 'weighted';
     renderExHead();
     document.getElementById('ex-body').innerHTML = '';
-    (wo.exercises || []).forEach(ex => addRow(ex));
+    (wo.exercises || []).forEach(ex => addRow({
+        ...ex,
+        rowType: ex.rowType || (legacyType !== 'mixed' ? legacyType : 'weighted')
+    }));
     showPage('workout');
 }
 
@@ -1279,10 +1358,7 @@ function clearWorkout() {
     document.getElementById('wd-name').value = '';
     document.getElementById('wd-notes').value = '';
     document.getElementById('ex-body').innerHTML = '';
-    wType = 'weighted';
-    document.getElementById('btn-weighted').classList.add('active');
-    document.getElementById('btn-mixed').classList.remove('active');
-    document.getElementById('btn-cardio').classList.remove('active');
+    setRating(0);
     renderExHead();
     addRow();
 }
@@ -1322,14 +1398,14 @@ function loadTemplate() {
     if (idx === '') { showToast('Select a template first'); return; }
     const t = getTmpls()[parseInt(idx)];
     if (!t) return;
-    wType = t.type || 'weighted';
-    document.getElementById('btn-weighted').classList.toggle('active', wType === 'weighted');
-    document.getElementById('btn-mixed').classList.toggle('active', wType === 'mixed');
-    document.getElementById('btn-cardio').classList.toggle('active', wType === 'cardio');
+    const legacyTmplType = t.type || 'weighted';
     renderExHead();
     document.getElementById('wd-name').value = t.name;
     document.getElementById('ex-body').innerHTML = '';
-    (t.exercises || []).forEach(ex => addRow(ex));
+    (t.exercises || []).forEach(ex => addRow({
+        ...ex,
+        rowType: ex.rowType || (legacyTmplType !== 'mixed' ? legacyTmplType : 'weighted')
+    }));
     showToast('Template loaded!');
 }
 
@@ -1463,11 +1539,15 @@ function renderPBWeighted(entries) {
         </div>`;
     }
 
-    // Volume per session (sets × reps × kg), last 20 sessions sorted by date
-    const volEntries = [...entries].sort((a,b) => a.date.localeCompare(b.date)).slice(-20);
-    const volData    = volEntries.map(e => (parseFloat(e.a)||0) * (parseFloat(e.b)||0) * (parseFloat(e.c)||0));
-    const volLabels  = volEntries.map(e => e.date.slice(5));
+    // Charts — last 20 sessions sorted by date
+    const chartEntries = [...entries].sort((a,b) => a.date.localeCompare(b.date)).slice(-20);
+    const chartLabels  = chartEntries.map(e => e.date.slice(5));
+    const volData    = chartEntries.map(e => (parseFloat(e.a)||0) * (parseFloat(e.b)||0) * (parseFloat(e.c)||0));
+    const weightData = chartEntries.map(e => parseFloat(e.c) || 0);
+    const repsData   = chartEntries.map(e => parseFloat(e.b) || 0);
     const hasVol     = volData.some(v => v > 0);
+    const hasWeight  = weightData.some(v => v > 0);
+    const volLabels  = chartLabels;
 
     // History sorted newest first
     const hist = [...entries].sort((a,b) => b.date.localeCompare(a.date));
@@ -1500,8 +1580,13 @@ function renderPBWeighted(entries) {
             <button class="btn btn-outline btn-sm" onclick="goToDate('${pb.date}')" style="margin:0;width:auto;display:inline-block;padding:9px 22px">View Workout</button>
         </div>
         ${rmHtml}
+        ${hasWeight ? `<div class="card">
+            <div class="card-title">Weight &amp; Reps Over Time</div>
+            <canvas class="chart-canvas" id="wr-chart"></canvas>
+            <div class="chart-legend" id="wr-legend"></div>
+        </div>` : ''}
         ${hasVol ? `<div class="card">
-            <div class="card-title">Volume Per Session (kg)</div>
+            <div class="card-title">Volume Per Session (sets × reps × kg)</div>
             <canvas class="chart-canvas" id="vol-chart"></canvas>
         </div>` : ''}
         <div class="card">
@@ -1509,12 +1594,25 @@ function renderPBWeighted(entries) {
             ${histHtml}
         </div>`;
 
-    if (hasVol) {
-        requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+        if (hasWeight) {
+            const c = document.getElementById('wr-chart');
+            if (c) {
+                const datasets = [
+                    { data: weightData, color: '#FF6B35', label: 'Weight (kg)' },
+                    { data: repsData,   color: '#2196F3', label: 'Reps' }
+                ];
+                drawLineChart(c, datasets, chartLabels);
+                document.getElementById('wr-legend').innerHTML = datasets.map(ds =>
+                    `<div class="legend-item"><div class="legend-dot" style="background:${ds.color}"></div>${ds.label}</div>`
+                ).join('');
+            }
+        }
+        if (hasVol) {
             const c = document.getElementById('vol-chart');
             if (c) drawBarChart(c, volData, volLabels, '#FF6B35');
-        });
-    }
+        }
+    });
 }
 
 function renderPBCardio(entries) {
@@ -1758,6 +1856,7 @@ function setBWPeriod(p) {
 
 function renderBodyPage() {
     document.getElementById('bw-date').value = today();
+    renderMeasSection();
     const all = getBW();
     const entries = Object.entries(all)
         .sort((a,b) => a[0].localeCompare(b[0]))
@@ -1891,6 +1990,7 @@ let copyFromDate = null;
 
 function renderCal() {
     updateStats();
+    renderMuscleStats();
     document.getElementById('cal-label').textContent = MONTHS[calMonth] + ' ' + calYear;
 
     const grid = document.getElementById('cal-grid');
@@ -1957,7 +2057,7 @@ function renderDayDetail() {
     el.innerHTML = `<div class="card">
         <div style="font-size:11px;color:var(--text3);margin-bottom:4px">${fmtDate(calSel)}</div>
         <div class="day-title">${wo.name||'Workout'}</div>
-        <div class="day-meta">${wo.type==='cardio'?'Cardio':wo.type==='mixed'?'Mixed':'Weighted / Circuits'} · ${(wo.exercises||[]).length} exercise${(wo.exercises||[]).length!==1?'s':''}</div>
+        <div class="day-meta">${(wo.exercises||[]).length} exercise${(wo.exercises||[]).length!==1?'s':''}${wo.rating ? ` · ${wo.rating}/5` : ''}</div>
         <div class="ex-list">${exHtml}</div>
         ${wo.notes ? `<div class="day-notes">"${wo.notes}"</div>` : ''}
         <div class="day-btns">
@@ -2188,6 +2288,196 @@ function beepComplete() {
 function vib(p) { try { navigator.vibrate && navigator.vibrate(p); } catch(e){} }
 
 // ============================
+// RATING
+// ============================
+let wRating = 0;
+function setRating(r) {
+    wRating = r;
+    document.querySelectorAll('.rating-btn').forEach((b, i) => {
+        b.classList.toggle('active', i < r);
+    });
+}
+
+// ============================
+// EXERCISE NOTES
+// ============================
+let _noteRow = null;
+function openExNote(btn) {
+    _noteRow = btn.closest('tr');
+    const name = _noteRow.querySelector('.ex-input').value.trim() || 'Exercise';
+    document.getElementById('ex-note-title').textContent = name;
+    document.getElementById('ex-note-inp').value = _noteRow.dataset.note || '';
+    openOv('ov-ex-note');
+}
+function saveExNote() {
+    if (!_noteRow) return;
+    _noteRow.dataset.note = document.getElementById('ex-note-inp').value.trim();
+    updateNoteBtn(_noteRow);
+    closeOv('ov-ex-note');
+}
+function clearExNote() {
+    if (!_noteRow) return;
+    _noteRow.dataset.note = '';
+    updateNoteBtn(_noteRow);
+    closeOv('ov-ex-note');
+}
+function updateNoteBtn(tr) {
+    const btn = tr.querySelector('.note-btn');
+    if (!btn) return;
+    const has = !!tr.dataset.note;
+    btn.classList.toggle('has-note', has);
+    btn.title = has ? tr.dataset.note.slice(0, 60) : 'Add note';
+}
+
+// ============================
+// MEASUREMENTS
+// ============================
+const getMeas    = () => getData('ft_meas', {});
+const saveMeasRaw = v => setData('ft_meas', v);
+let measChartType = '';
+
+function saveMeasEntry() {
+    const date = document.getElementById('meas-date').value;
+    if (!date) { showToast('Pick a date'); return; }
+    const type = document.getElementById('meas-type').value.trim();
+    if (!type) { showToast('Enter a measurement type'); return; }
+    const val = parseFloat(document.getElementById('meas-val').value);
+    if (!val || val <= 0) { showToast('Enter a valid value'); return; }
+    const data = getMeas();
+    if (!data[type]) data[type] = [];
+    const idx = data[type].findIndex(e => e.date === date);
+    if (idx >= 0) data[type][idx].val = val;
+    else data[type].push({ date, val });
+    data[type].sort((a, b) => a.date.localeCompare(b.date));
+    saveMeasRaw(data);
+    document.getElementById('meas-val').value = '';
+    renderMeasSection();
+    showToast('Saved!', 'var(--green)');
+}
+
+function renderMeasSection() {
+    const data = getMeas();
+    const types = Object.keys(data).filter(k => data[k] && data[k].length > 0);
+    const sel = document.getElementById('meas-type-chart');
+    if (!sel) return;
+    if (!measChartType || !types.includes(measChartType)) measChartType = types[0] || '';
+    sel.innerHTML = types.length
+        ? types.map(t => `<option${t===measChartType?' selected':''}>${t}</option>`).join('')
+        : '<option value="">No data</option>';
+
+    const entries = measChartType ? (data[measChartType] || []).slice().sort((a,b) => a.date.localeCompare(b.date)) : [];
+
+    requestAnimationFrame(() => {
+        const c = document.getElementById('meas-chart');
+        if (!c) return;
+        if (entries.length >= 2) {
+            drawLineChart(c, [{ data: entries.map(e => e.val), color: '#9C27B0', label: measChartType + ' (cm)' }], entries.map(e => e.date.slice(5)));
+        } else {
+            const dpr = window.devicePixelRatio || 1;
+            c.width = c.offsetWidth * dpr; c.height = c.offsetHeight * dpr;
+            const ctx = c.getContext('2d'); ctx.scale(dpr, dpr);
+            ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.font = '13px -apple-system,sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(types.length ? 'Log at least 2 entries to see chart' : 'No measurements logged yet', c.offsetWidth/2, c.offsetHeight/2);
+        }
+    });
+
+    const histEl = document.getElementById('meas-history');
+    if (!entries.length) { histEl.innerHTML = ''; return; }
+    histEl.innerHTML = [...entries].reverse().slice(0, 20).map((e, i, arr) => {
+        const prev = arr[i + 1];
+        const diff = prev ? +(e.val - prev.val).toFixed(1) : null;
+        const diffStr = diff !== null
+            ? ` <span style="font-size:11px;color:${diff > 0 ? 'var(--red)' : diff < 0 ? 'var(--green)' : 'var(--text3)'}">${diff > 0 ? '+' : ''}${diff}cm</span>`
+            : '';
+        return `<div class="bw-hist-row">
+            <div style="font-size:13px;font-weight:600">${fmtDate(e.date)}</div>
+            <div style="display:flex;align-items:center;gap:10px">
+                <div style="font-size:18px;font-weight:800;color:#9C27B0">${e.val}cm${diffStr}</div>
+                <button class="bw-del-btn" onclick="deleteMeasEntry('${esc(measChartType)}','${e.date}')">×</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function deleteMeasEntry(type, date) {
+    confirm2(`Delete ${type} entry for ${fmtDate(date)}?`, 'Delete', () => {
+        const data = getMeas();
+        if (data[type]) data[type] = data[type].filter(e => e.date !== date);
+        saveMeasRaw(data);
+        renderMeasSection();
+        showToast('Deleted');
+    });
+}
+
+// ============================
+// EXPORT / IMPORT
+// ============================
+function exportData() {
+    const keys = ['ft_wo','ft_tmpls','ft_bw','ft_meas','ft_tags'];
+    const out = {};
+    keys.forEach(k => { const v = localStorage.getItem(k); if (v) out[k] = JSON.parse(v); });
+    const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `fittrack-backup-${today()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    showToast('Backup downloaded!', 'var(--green)');
+}
+
+function importData() {
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = '.json';
+    inp.onchange = e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+            try {
+                const data = JSON.parse(ev.target.result);
+                Object.entries(data).forEach(([k, v]) => setData(k, v));
+                showToast('Import successful!', 'var(--green)');
+                renderBodyPage();
+            } catch { showToast('Invalid backup file'); }
+        };
+        reader.readAsText(file);
+    };
+    inp.click();
+}
+
+// ============================
+// MUSCLE GROUP STATS
+// ============================
+function renderMuscleStats() {
+    const wo = getWO();
+    const counts = {};
+    Object.values(wo).forEach(w => {
+        (w.exercises || []).forEach(ex => {
+            (ex.tags || []).forEach(t => { counts[t] = (counts[t] || 0) + 1; });
+        });
+    });
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    const card = document.getElementById('muscle-stats-card');
+    const el = document.getElementById('muscle-stats');
+    if (!sorted.length) { card.style.display = 'none'; return; }
+    card.style.display = '';
+    const max = sorted[0][1];
+    el.innerHTML = sorted.map(([tag, count]) => `
+        <div class="meas-bar-row">
+            <div style="display:flex;justify-content:space-between;font-size:12px">
+                <span style="color:var(--text2)">${esc(tag)}</span>
+                <span style="color:var(--text3)">${count} set${count!==1?'s':''}</span>
+            </div>
+            <div class="meas-bar-track">
+                <div class="meas-bar-fill" style="width:${Math.round(count/max*100)}%;background:var(--blue)"></div>
+            </div>
+        </div>`).join('');
+}
+
+// ============================
 // REST TIMER
 // ============================
 let restState = { iv: null, remaining: 0, total: 0, active: false };
@@ -2267,8 +2557,6 @@ function buildIntervals() {
     const dur = document.getElementById('int-dur').value.trim();
     const rest = document.getElementById('int-rest').value.trim();
     if (!name) { showToast('Enter an activity name'); return; }
-    // Switch to mixed if currently weighted
-    if (wType === 'weighted') setType('mixed');
     for (let i = 0; i < intCount; i++) {
         addRow({ name, a: speed, b: dur, rowType: 'cardio' });
         if (rest && i < intCount - 1) {
@@ -2291,7 +2579,8 @@ function duplicateRow(btn) {
         b: inp[2].value,
         c: inp[3].value,
         rowType: tr.dataset.rtype || 'weighted',
-        tags: JSON.parse(tr.dataset.tags || '[]')
+        tags: JSON.parse(tr.dataset.tags || '[]'),
+        note: tr.dataset.note || ''
     });
 }
 
@@ -2399,6 +2688,7 @@ function init() {
         now.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long' });
 
     document.getElementById('wd-date').value = today();
+    document.getElementById('meas-date').value = today();
     renderExHead();
     addRow();
     refreshTmplSel();
