@@ -667,6 +667,52 @@
         }
         .note-btn.has-note { color: var(--primary); }
 
+        /* ---- LIGHT MODE ---- */
+        body.light {
+            --bg: #f2f2f7; --surface: #ffffff; --surface2: #e8e8ed;
+            --border: #c8c8cc; --text: #111111; --text2: #444444; --text3: #888888;
+        }
+        body.light .header { background: #ffffff; }
+        body.light .bnav   { background: #ffffff; }
+
+        /* ---- GEAR BUTTON ---- */
+        .gear-btn {
+            background: none; border: none; color: var(--text3);
+            font-size: 19px; cursor: pointer; padding: 4px 6px;
+            border-radius: 8px; line-height: 1; transition: color 0.15s;
+        }
+        .gear-btn:active { color: var(--primary); }
+
+        /* ---- SETTINGS TOGGLE ---- */
+        .setting-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 0; border-bottom: 1px solid var(--border);
+        }
+        .setting-row:last-child { border-bottom: none; }
+        .setting-label { font-size: 14px; font-weight: 600; color: var(--text2); }
+        .setting-sub   { font-size: 11px; color: var(--text3); margin-top: 2px; }
+        .sw-wrap { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
+        .sw-wrap input { opacity: 0; width: 0; height: 0; position: absolute; }
+        .sw-track {
+            position: absolute; inset: 0; background: var(--border);
+            border-radius: 13px; cursor: pointer; transition: background 0.2s;
+        }
+        .sw-track::before {
+            content: ''; position: absolute;
+            width: 20px; height: 20px; left: 3px; top: 3px;
+            background: #fff; border-radius: 50%; transition: transform 0.2s;
+        }
+        .sw-wrap input:checked + .sw-track { background: var(--primary); }
+        .sw-wrap input:checked + .sw-track::before { transform: translateX(20px); }
+
+        /* ---- SUMMARY SHEET ---- */
+        .summary-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin: 16px 0; }
+        .summary-stat { background: var(--surface2); border-radius: 12px; padding: 12px 6px; text-align: center; }
+        .summary-stat-val { font-size: 22px; font-weight: 800; color: var(--primary); line-height: 1.1; }
+        .summary-stat-lbl { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 3px; }
+        .pb-alert-row { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+        .pb-alert-row:last-child { border-bottom: none; }
+
         /* ---- MEASUREMENTS ---- */
         .meas-bar-row { margin-bottom: 9px; }
         .meas-bar-track { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; margin-top: 3px; }
@@ -678,7 +724,10 @@
 
     <header class="header">
         <div class="header-logo">FITTRACK</div>
-        <div class="header-date" id="header-date"></div>
+        <div style="display:flex;align-items:center;gap:10px">
+            <div class="header-date" id="header-date"></div>
+            <button class="gear-btn" onclick="openSettings()" title="Settings">⚙</button>
+        </div>
     </header>
 
     <!-- ============================================================
@@ -710,7 +759,7 @@
             </div>
         </div>
 
-        <div class="card">
+        <div class="card" id="rest-timer-card">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
                 <div class="card-title" style="margin:0">Rest Timer</div>
                 <div class="rest-display" id="rt-display">—</div>
@@ -756,7 +805,7 @@
             <button class="btn btn-outline btn-sm" onclick="openSaveTmpl()">Save Current as Template</button>
         </div>
 
-        <button class="btn btn-primary" onclick="saveWorkout()">Save Workout</button>
+        <button class="btn btn-primary" onclick="saveAndSummarise()">Save Workout</button>
         <button class="btn btn-outline" onclick="clearWorkout()">New / Clear</button>
     </div>
 
@@ -789,6 +838,11 @@
             <div class="cal-grid" id="cal-grid"></div>
         </div>
 
+        <div class="card" id="weekly-vol-card" style="display:none">
+            <div class="card-title">Weekly Volume (kg)</div>
+            <canvas class="chart-canvas" id="weekly-vol-chart"></canvas>
+        </div>
+
         <div id="muscle-stats-card" class="card" style="display:none">
             <div class="card-title">Most Trained (from tags)</div>
             <div id="muscle-stats"></div>
@@ -801,6 +855,11 @@
          BODY PAGE
     ============================================================ -->
     <div id="page-body" class="page">
+
+        <div class="card" id="body-overview-card" style="display:none">
+            <div class="card-title">Stats Overview</div>
+            <div id="body-overview-content"></div>
+        </div>
 
         <div class="stats-row">
             <div class="stat-box">
@@ -1070,6 +1129,38 @@
     </div>
 </div>
 
+<!-- ---- MODAL: Settings ---- -->
+<div class="overlay" id="ov-settings" onclick="closeOv('ov-settings')">
+    <div class="sheet" onclick="event.stopPropagation()">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">Settings</div>
+        <div class="setting-row">
+            <div><div class="setting-label">Light Mode</div><div class="setting-sub">Switch to a light colour scheme</div></div>
+            <label class="sw-wrap"><input type="checkbox" id="sw-light" onchange="toggleSetting('lightMode',this.checked)"><span class="sw-track"></span></label>
+        </div>
+        <div class="setting-row">
+            <div><div class="setting-label">Rest Timer</div><div class="setting-sub">Show rest timer on workout page</div></div>
+            <label class="sw-wrap"><input type="checkbox" id="sw-rest" onchange="toggleSetting('showRestTimer',this.checked)" checked><span class="sw-track"></span></label>
+        </div>
+        <div class="setting-row">
+            <div><div class="setting-label">Interval Builder</div><div class="setting-sub">Show ⚡ button on workout page</div></div>
+            <label class="sw-wrap"><input type="checkbox" id="sw-intervals" onchange="toggleSetting('showIntervalBuilder',this.checked)" checked><span class="sw-track"></span></label>
+        </div>
+        <div class="setting-row">
+            <div><div class="setting-label">Exercise Tags</div><div class="setting-sub">Show muscle group tags on exercises</div></div>
+            <label class="sw-wrap"><input type="checkbox" id="sw-tags" onchange="toggleSetting('showTags',this.checked)" checked><span class="sw-track"></span></label>
+        </div>
+    </div>
+</div>
+
+<!-- ---- MODAL: Workout Summary ---- -->
+<div class="overlay" id="ov-summary" onclick="closeOv('ov-summary')">
+    <div class="sheet" onclick="event.stopPropagation()">
+        <div class="sheet-handle"></div>
+        <div id="ov-summary-content"></div>
+    </div>
+</div>
+
 <!-- ---- MODAL: Exercise Note ---- -->
 <div class="overlay" id="ov-ex-note" onclick="closeOv('ov-ex-note')">
     <div class="sheet" onclick="event.stopPropagation()">
@@ -1319,22 +1410,6 @@ function getExercises() {
     }).filter(r => r.name);
 }
 
-function saveWorkout() {
-    const date = document.getElementById('wd-date').value;
-    if (!date) { showToast('Please pick a date'); return; }
-    const wo = getWO();
-    wo[date] = {
-        name: document.getElementById('wd-name').value.trim() || 'Workout',
-        type: 'mixed',
-        exercises: getExercises(),
-        notes: document.getElementById('wd-notes').value.trim(),
-        rating: wRating || 0,
-        ts: Date.now()
-    };
-    saveWO(wo);
-    showToast('Workout saved!', 'var(--green)');
-    renderCal();
-}
 
 function loadWorkoutToPage(date) {
     const wo = getWO()[date];
@@ -1857,6 +1932,7 @@ function setBWPeriod(p) {
 function renderBodyPage() {
     document.getElementById('bw-date').value = today();
     renderMeasSection();
+    renderBodyOverview();
     const all = getBW();
     const entries = Object.entries(all)
         .sort((a,b) => a[0].localeCompare(b[0]))
@@ -1991,6 +2067,7 @@ let copyFromDate = null;
 function renderCal() {
     updateStats();
     renderMuscleStats();
+    renderWeeklyVolume();
     document.getElementById('cal-label').textContent = MONTHS[calMonth] + ' ' + calYear;
 
     const grid = document.getElementById('cal-grid');
@@ -2286,6 +2363,206 @@ function beepComplete() {
     setTimeout(()=>tone(784,160),400); setTimeout(()=>tone(1047,500),600);
 }
 function vib(p) { try { navigator.vibrate && navigator.vibrate(p); } catch(e){} }
+
+// ============================
+// SETTINGS
+// ============================
+const getSettings = () => getData('ft_settings', { lightMode:false, showRestTimer:true, showIntervalBuilder:true, showTags:true });
+const saveSettings = v => setData('ft_settings', v);
+
+function openSettings() {
+    const s = getSettings();
+    document.getElementById('sw-light').checked     = !!s.lightMode;
+    document.getElementById('sw-rest').checked      = s.showRestTimer !== false;
+    document.getElementById('sw-intervals').checked = s.showIntervalBuilder !== false;
+    document.getElementById('sw-tags').checked      = s.showTags !== false;
+    openOv('ov-settings');
+}
+
+function toggleSetting(key, val) {
+    const s = getSettings();
+    s[key] = val;
+    saveSettings(s);
+    applySettings(s);
+}
+
+function applySettings(s) {
+    s = s || getSettings();
+    document.body.classList.toggle('light', !!s.lightMode);
+    const rtCard = document.getElementById('rest-timer-card');
+    if (rtCard) rtCard.style.display = s.showRestTimer === false ? 'none' : '';
+    const intBtn = document.getElementById('btn-intervals');
+    if (intBtn) intBtn.style.display = s.showIntervalBuilder === false ? 'none' : '';
+    // Tags: toggle visibility on all existing rows
+    const showTags = s.showTags !== false;
+    document.querySelectorAll('.row-tags').forEach(el => el.style.display = showTags ? '' : 'none');
+    document.querySelectorAll('.tag-add-btn').forEach(el => el.style.display = showTags ? '' : 'none');
+}
+
+// ============================
+// PB CHECK + WORKOUT SUMMARY
+// ============================
+function saveAndSummarise() {
+    const date = document.getElementById('wd-date').value;
+    if (!date) { showToast('Please pick a date'); return; }
+    const wo = getWO();
+    const exercises = getExercises();
+    const pbs = checkForPBs(date, exercises, wo);
+
+    wo[date] = {
+        name: document.getElementById('wd-name').value.trim() || 'Workout',
+        type: 'mixed',
+        exercises,
+        notes: document.getElementById('wd-notes').value.trim(),
+        rating: wRating || 0,
+        ts: Date.now()
+    };
+    saveWO(wo);
+    renderCal();
+    showWorkoutSummary(date, wo[date], pbs);
+}
+
+function checkForPBs(date, exercises, wo) {
+    const pbs = [];
+    exercises.forEach(ex => {
+        if (!ex.name || ex.rowType === 'cardio') return;
+        const curW = parseFloat(ex.c) || 0;
+        const curR = parseFloat(ex.b) || 0;
+        if (!curW) return;
+        let prevMaxW = 0, prevMaxRAtW = 0;
+        Object.entries(wo).forEach(([d, w]) => {
+            if (d === date) return;
+            (w.exercises || []).forEach(e => {
+                if (e.name.toLowerCase() !== ex.name.toLowerCase()) return;
+                const ew = parseFloat(e.c) || 0;
+                if (ew > prevMaxW) prevMaxW = ew;
+                if (ew === curW) prevMaxRAtW = Math.max(prevMaxRAtW, parseFloat(e.b) || 0);
+            });
+        });
+        if (!prevMaxW) return; // first time — no alert
+        if (curW > prevMaxW) {
+            pbs.push({ name: ex.name, msg: `${curW}kg <span style="color:var(--text3);font-size:11px">prev ${prevMaxW}kg</span>` });
+        } else if (curW === prevMaxW && curR > prevMaxRAtW && prevMaxRAtW > 0) {
+            pbs.push({ name: ex.name, msg: `${curR} reps @ ${curW}kg <span style="color:var(--text3);font-size:11px">prev ${prevMaxRAtW} reps</span>` });
+        }
+    });
+    return pbs;
+}
+
+function showWorkoutSummary(date, wo, pbs) {
+    const exercises = wo.exercises || [];
+    const weighted = exercises.filter(e => e.rowType !== 'cardio');
+    const cardio   = exercises.filter(e => e.rowType === 'cardio');
+    const totalSets = weighted.reduce((s, e) => s + (parseFloat(e.a) || 0), 0);
+    const totalVol  = weighted.reduce((s, e) => s + (parseFloat(e.a)||0)*(parseFloat(e.b)||0)*(parseFloat(e.c)||0), 0);
+    const ratingStr = wo.rating ? `<span style="font-size:13px;color:var(--text2)">Rating: <strong style="color:var(--primary)">${wo.rating}/5</strong></span>` : '';
+
+    const pbHtml = pbs.length ? `
+        <div style="margin-bottom:16px">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);font-weight:700;margin-bottom:8px">🏆 New Personal Bests</div>
+            ${pbs.map(p => `<div class="pb-alert-row">
+                <div style="font-size:20px">🏆</div>
+                <div><div style="font-size:13px;font-weight:700">${esc(p.name)}</div><div style="font-size:12px;color:var(--text2);margin-top:2px">${p.msg}</div></div>
+            </div>`).join('')}
+        </div>` : '';
+
+    const cardioHtml = cardio.length ? `<div style="font-size:12px;color:var(--text3);margin-top:-8px;margin-bottom:12px">${cardio.length} cardio exercise${cardio.length!==1?'s':''}</div>` : '';
+
+    document.getElementById('ov-summary-content').innerHTML = `
+        <div style="text-align:center;margin-bottom:16px">
+            <div style="font-size:22px;font-weight:800">${esc(wo.name)}</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:3px">${fmtDate(date)}</div>
+        </div>
+        <div class="summary-grid">
+            <div class="summary-stat"><div class="summary-stat-val">${exercises.length}</div><div class="summary-stat-lbl">Exercises</div></div>
+            <div class="summary-stat"><div class="summary-stat-val">${totalSets}</div><div class="summary-stat-lbl">Sets</div></div>
+            <div class="summary-stat"><div class="summary-stat-val">${totalVol >= 1000 ? (totalVol/1000).toFixed(1)+'t' : Math.round(totalVol)+'kg'}</div><div class="summary-stat-lbl">Volume</div></div>
+        </div>
+        ${cardioHtml}
+        ${pbHtml}
+        ${ratingStr}
+        <button class="btn btn-primary" onclick="closeOv('ov-summary')" style="margin-top:16px">Done</button>
+    `;
+    openOv('ov-summary');
+}
+
+// ============================
+// WEEKLY VOLUME CHART
+// ============================
+function renderWeeklyVolume() {
+    const wo = getWO();
+    const labels = [], data = [];
+    for (let i = 11; i >= 0; i--) {
+        const mon = new Date();
+        const dow = mon.getDay();
+        mon.setDate(mon.getDate() - (dow === 0 ? 6 : dow - 1) - i * 7);
+        mon.setHours(0,0,0,0);
+        const sun = new Date(mon); sun.setDate(mon.getDate() + 6); sun.setHours(23,59,59,999);
+        let vol = 0;
+        Object.entries(wo).forEach(([d, w]) => {
+            const dt = new Date(d + 'T12:00:00');
+            if (dt >= mon && dt <= sun) {
+                (w.exercises || []).forEach(e => {
+                    vol += (parseFloat(e.a)||0) * (parseFloat(e.b)||0) * (parseFloat(e.c)||0);
+                });
+            }
+        });
+        labels.push(mon.toLocaleDateString('en-GB', { day:'numeric', month:'short' }));
+        data.push(Math.round(vol));
+    }
+    const card = document.getElementById('weekly-vol-card');
+    const hasData = data.some(v => v > 0);
+    if (!card) return;
+    card.style.display = hasData ? '' : 'none';
+    if (hasData) {
+        requestAnimationFrame(() => {
+            const c = document.getElementById('weekly-vol-chart');
+            if (c) drawBarChart(c, data, labels, '#FF6B35');
+        });
+    }
+}
+
+// ============================
+// BODY STATS OVERVIEW
+// ============================
+function renderBodyOverview() {
+    const bw = getBW();
+    const meas = getMeas();
+    const card = document.getElementById('body-overview-card');
+    const el   = document.getElementById('body-overview-content');
+    if (!card || !el) return;
+
+    const bwEntries = Object.entries(bw).sort((a,b) => b[0].localeCompare(a[0]));
+    const measTypes = Object.keys(meas).filter(k => meas[k] && meas[k].length > 0);
+
+    if (!bwEntries.length && !measTypes.length) { card.style.display = 'none'; return; }
+    card.style.display = '';
+
+    const latestBW = bwEntries[0];
+    let html = '<div style="display:flex;flex-wrap:wrap;gap:8px">';
+
+    if (latestBW) {
+        const prev = bwEntries[1];
+        const diff = prev ? +(latestBW[1].w - prev[1].w).toFixed(1) : null;
+        const diffStr = diff !== null ? `<span style="font-size:10px;color:${diff>0?'var(--red)':diff<0?'var(--green)':'var(--text3)'};margin-left:3px">${diff>0?'+':''}${diff}kg</span>` : '';
+        html += `<div class="summary-stat" style="min-width:80px"><div class="summary-stat-val">${latestBW[1].w}</div><div class="summary-stat-lbl">Weight kg${diffStr}</div></div>`;
+        if (latestBW[1].bf) {
+            html += `<div class="summary-stat" style="min-width:80px"><div class="summary-stat-val">${latestBW[1].bf}%</div><div class="summary-stat-lbl">Body Fat</div></div>`;
+        }
+    }
+
+    measTypes.forEach(type => {
+        const entries = meas[type].slice().sort((a,b) => b.date.localeCompare(a.date));
+        const latest = entries[0];
+        const prev   = entries[1];
+        const diff   = prev ? +(latest.val - prev.val).toFixed(1) : null;
+        const diffStr = diff !== null ? `<span style="font-size:10px;color:${diff>0?'var(--red)':diff<0?'var(--green)':'var(--text3)'};margin-left:3px">${diff>0?'+':''}${diff}</span>` : '';
+        html += `<div class="summary-stat" style="min-width:80px"><div class="summary-stat-val" style="font-size:18px;color:#9C27B0">${latest.val}</div><div class="summary-stat-lbl">${esc(type)} cm${diffStr}</div></div>`;
+    });
+
+    html += '</div>';
+    el.innerHTML = html;
+}
 
 // ============================
 // RATING
@@ -2698,6 +2975,8 @@ function init() {
     document.getElementById('t-rounds-val').textContent = tCfg.rounds;
     document.getElementById('t-time').textContent = fmtSec(tCfg.work);
     document.getElementById('t-round').textContent = `Round 1 of ${tCfg.rounds}`;
+
+    applySettings();
 
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').catch(()=>{});
