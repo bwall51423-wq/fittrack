@@ -833,20 +833,6 @@
 
         <button class="btn btn-primary" onclick="saveAndSummarise()">Save Workout</button>
         <button class="btn btn-outline" onclick="clearWorkout()">New / Clear</button>
-
-        <div class="card" id="ex-trend-card" style="display:none">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                <div class="card-title" style="margin:0">Exercise Trend</div>
-                <button class="chart-toggle-btn" id="trend-toggle-btn" onclick="toggleChart('trend-slide','trend-toggle-btn')">📊 Show</button>
-            </div>
-            <div class="field" style="margin-bottom:8px">
-                <select id="trend-ex-sel" onchange="renderExTrend()" style="font-size:13px"></select>
-            </div>
-            <div class="chart-slide" id="trend-slide">
-                <canvas class="chart-canvas" id="trend-chart"></canvas>
-                <div class="chart-legend" id="trend-legend"></div>
-            </div>
-        </div>
     </div>
 
     <!-- ============================================================
@@ -878,64 +864,6 @@
             <div class="cal-grid" id="cal-grid"></div>
         </div>
 
-        <div class="card" id="weekly-vol-card" style="display:none">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                <div class="card-title" style="margin:0">Weekly Volume (kg)</div>
-                <div style="display:flex;align-items:center;gap:6px">
-                    <div class="period-row">
-                        <button class="period-btn active" id="volp-4w" onclick="setVolPeriod(4)">4W</button>
-                        <button class="period-btn" id="volp-8w" onclick="setVolPeriod(8)">8W</button>
-                        <button class="period-btn" id="volp-12w" onclick="setVolPeriod(12)">12W</button>
-                    </div>
-                    <button class="chart-toggle-btn" id="vol-toggle-btn" onclick="toggleChart('vol-chart-slide','vol-toggle-btn')">📊 Show</button>
-                </div>
-            </div>
-            <div class="chart-slide" id="vol-chart-slide">
-                <canvas class="chart-canvas" id="weekly-vol-chart"></canvas>
-            </div>
-        </div>
-
-        <div class="card" id="heatmap-card" style="display:none">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                <div class="card-title" style="margin:0">Workout Frequency</div>
-                <button class="chart-toggle-btn" id="heatmap-toggle-btn" onclick="toggleChart('heatmap-slide','heatmap-toggle-btn')">📊 Show</button>
-            </div>
-            <div class="chart-slide" id="heatmap-slide">
-                <canvas class="heatmap-canvas" id="heatmap-chart"></canvas>
-                <div style="display:flex;gap:14px;margin-top:8px;justify-content:center;font-size:10px;color:var(--text3)">
-                    <div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:2px;background:var(--primary)"></div>Weights</div>
-                    <div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:2px;background:var(--blue)"></div>Cardio</div>
-                    <div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:2px;background:#9C27B0"></div>Mixed</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card" id="session-split-card" style="display:none">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                <div class="card-title" style="margin:0">Session Split</div>
-                <button class="chart-toggle-btn" id="split-toggle-btn" onclick="toggleChart('split-slide','split-toggle-btn')">📊 Show</button>
-            </div>
-            <div class="chart-slide" id="split-slide">
-                <canvas class="pie-canvas" id="split-chart"></canvas>
-                <div class="pie-legend" id="split-legend"></div>
-            </div>
-        </div>
-
-        <div class="card" id="radar-card" style="display:none">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                <div class="card-title" style="margin:0">Muscle Group Focus</div>
-                <button class="chart-toggle-btn" id="radar-toggle-btn" onclick="toggleChart('radar-slide','radar-toggle-btn')">📊 Show</button>
-            </div>
-            <div class="chart-slide" id="radar-slide">
-                <canvas class="radar-canvas" id="radar-chart"></canvas>
-            </div>
-        </div>
-
-        <div id="muscle-stats-card" class="card" style="display:none">
-            <div class="card-title">Most Trained (from tags)</div>
-            <div id="muscle-stats"></div>
-        </div>
-
         <div id="day-detail"></div>
     </div>
 
@@ -965,22 +893,17 @@
         </div>
 
         <div class="card">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
                 <div class="card-title" style="margin:0">Progress</div>
-                <div style="display:flex;align-items:center;gap:6px">
-                    <div class="period-row">
-                        <button class="period-btn active" id="bwp-1m" onclick="setBWPeriod('1m')">1M</button>
-                        <button class="period-btn" id="bwp-3m" onclick="setBWPeriod('3m')">3M</button>
-                        <button class="period-btn" id="bwp-6m" onclick="setBWPeriod('6m')">6M</button>
-                        <button class="period-btn" id="bwp-all" onclick="setBWPeriod('all')">All</button>
-                    </div>
-                    <button class="chart-toggle-btn" id="bw-toggle-btn" onclick="toggleChart('bw-chart-slide','bw-toggle-btn')">📊 Show</button>
+                <div class="period-row">
+                    <button class="period-btn active" id="bwp-1m" onclick="setBWPeriod('1m')">1M</button>
+                    <button class="period-btn" id="bwp-3m" onclick="setBWPeriod('3m')">3M</button>
+                    <button class="period-btn" id="bwp-6m" onclick="setBWPeriod('6m')">6M</button>
+                    <button class="period-btn" id="bwp-all" onclick="setBWPeriod('all')">All</button>
                 </div>
             </div>
-            <div class="chart-slide" id="bw-chart-slide">
-                <canvas class="chart-canvas" id="bw-chart"></canvas>
-                <div class="chart-legend" id="bw-legend"></div>
-            </div>
+            <canvas class="chart-canvas" id="bw-chart"></canvas>
+            <div class="chart-legend" id="bw-legend"></div>
         </div>
 
         <div class="card">
@@ -1032,16 +955,11 @@
         </div>
 
         <div class="card">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
                 <div class="card-title" style="margin:0">Measurements</div>
-                <div style="display:flex;align-items:center;gap:6px">
-                    <select id="meas-type-chart" onchange="measChartType=this.value;renderMeasSection()" style="font-size:12px;padding:5px 8px;width:auto;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text)"></select>
-                    <button class="chart-toggle-btn" id="meas-toggle-btn" onclick="toggleChart('meas-chart-slide','meas-toggle-btn')">📊 Show</button>
-                </div>
+                <select id="meas-type-chart" onchange="measChartType=this.value;renderMeasSection()" style="font-size:12px;padding:5px 8px;width:auto;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text)"></select>
             </div>
-            <div class="chart-slide" id="meas-chart-slide">
-                <canvas class="chart-canvas" id="meas-chart"></canvas>
-            </div>
+            <canvas class="chart-canvas" id="meas-chart"></canvas>
             <div id="meas-history" style="margin-top:10px"></div>
         </div>
 
@@ -1057,16 +975,6 @@
          PBs PAGE
     ============================================================ -->
     <div id="page-pbs" class="page">
-
-        <div class="card" id="lifetime-stats-card" style="display:none">
-            <div class="card-title">Lifetime Stats</div>
-            <div id="lifetime-stats-content"></div>
-        </div>
-
-        <div class="card" id="recent-pbs-card" style="display:none">
-            <div class="card-title">Recent PBs</div>
-            <div id="recent-pbs-list"></div>
-        </div>
 
         <div class="card">
             <div class="card-title">Exercise</div>
@@ -1084,6 +992,74 @@
         </div>
 
         <div id="pb-result"></div>
+
+    </div>
+
+    <!-- ============================================================
+         STATS PAGE
+    ============================================================ -->
+    <div id="page-stats" class="page">
+
+        <div class="card" id="lifetime-stats-card" style="display:none">
+            <div class="card-title">Lifetime Stats</div>
+            <div id="lifetime-stats-content"></div>
+        </div>
+
+        <div class="card" id="recent-pbs-card" style="display:none">
+            <div class="card-title">Recent PBs</div>
+            <div id="recent-pbs-list"></div>
+        </div>
+
+        <div class="card" id="weekly-vol-card" style="display:none">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                <div class="card-title" style="margin:0">Weekly Volume (kg)</div>
+                <div class="period-row">
+                    <button class="period-btn active" id="volp-4w" onclick="setVolPeriod(4)">4W</button>
+                    <button class="period-btn" id="volp-8w" onclick="setVolPeriod(8)">8W</button>
+                    <button class="period-btn" id="volp-12w" onclick="setVolPeriod(12)">12W</button>
+                </div>
+            </div>
+            <canvas class="chart-canvas" id="weekly-vol-chart"></canvas>
+        </div>
+
+        <div class="card" id="heatmap-card" style="display:none">
+            <div class="card-title">Workout Frequency</div>
+            <canvas class="heatmap-canvas" id="heatmap-chart"></canvas>
+            <div style="display:flex;gap:14px;margin-top:10px;justify-content:center;font-size:10px;color:var(--text3)">
+                <div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:2px;background:var(--primary)"></div>Weights</div>
+                <div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:2px;background:var(--blue)"></div>Cardio</div>
+                <div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:2px;background:#9C27B0"></div>Mixed</div>
+            </div>
+        </div>
+
+        <div class="card" id="session-split-card" style="display:none">
+            <div class="card-title">Session Split</div>
+            <canvas class="pie-canvas" id="split-chart"></canvas>
+            <div class="pie-legend" id="split-legend"></div>
+        </div>
+
+        <div id="muscle-stats-card" class="card" style="display:none">
+            <div class="card-title">Most Trained (from tags)</div>
+            <div id="muscle-stats"></div>
+        </div>
+
+        <div class="card" id="radar-card" style="display:none">
+            <div class="card-title">Muscle Group Focus</div>
+            <canvas class="radar-canvas" id="radar-chart"></canvas>
+        </div>
+
+        <div class="card" id="ex-trend-card" style="display:none">
+            <div class="card-title">Exercise Trend</div>
+            <div class="field" style="margin-bottom:10px">
+                <select id="trend-ex-sel" onchange="renderExTrend()" style="font-size:13px"></select>
+            </div>
+            <canvas class="chart-canvas" id="trend-chart"></canvas>
+            <div class="chart-legend" id="trend-legend" style="margin-top:10px"></div>
+        </div>
+
+        <div id="stats-empty" style="display:none;text-align:center;padding:60px 20px;color:var(--text3);font-size:14px;line-height:1.8">
+            No workout data yet.<br>Start logging to see your stats.
+        </div>
 
     </div>
 
@@ -1154,6 +1130,14 @@
                 <line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/>
             </svg>
             Calendar
+        </button>
+        <button class="bnav-btn" id="nav-stats" onclick="showPage('stats')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10"/>
+                <line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+            Stats
         </button>
         <button class="bnav-btn" id="nav-timer" onclick="showPage('timer')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -1413,8 +1397,9 @@ function showPage(p) {
     document.getElementById('page-' + p).classList.add('active');
     document.getElementById('nav-' + p).classList.add('active');
     if (p === 'calendar') renderCal();
-    if (p === 'pbs') buildPBSel();
-    if (p === 'body') renderBodyPage();
+    if (p === 'stats')    renderStats();
+    if (p === 'pbs')      buildPBSel();
+    if (p === 'body')     renderBodyPage();
 }
 
 // ============================
@@ -1652,8 +1637,6 @@ function buildPBSel() {
     });
     if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
     renderPB();
-    renderRecentPBs();
-    renderLifetimeStats();
 }
 
 function renderPB() {
@@ -1771,32 +1754,17 @@ function renderPBWeighted(entries) {
         </div>
         ${rmHtml}
         ${hasProgression ? `<div class="card">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                <div class="card-title" style="margin:0">PB Progression</div>
-                <button class="chart-toggle-btn" id="prog-toggle-btn" onclick="toggleChart('prog-slide','prog-toggle-btn')">📊 Show</button>
-            </div>
-            <div class="chart-slide" id="prog-slide">
-                <canvas class="chart-canvas" id="prog-chart"></canvas>
-            </div>
+            <div class="card-title">PB Progression</div>
+            <canvas class="chart-canvas" id="prog-chart"></canvas>
         </div>` : ''}
         ${hasWeight ? `<div class="card">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                <div class="card-title" style="margin:0">Weight &amp; Reps Over Time</div>
-                <button class="chart-toggle-btn" id="wr-toggle-btn" onclick="toggleChart('wr-chart-slide','wr-toggle-btn')">📊 Show</button>
-            </div>
-            <div class="chart-slide" id="wr-chart-slide">
-                <canvas class="chart-canvas" id="wr-chart"></canvas>
-                <div class="chart-legend" id="wr-legend"></div>
-            </div>
+            <div class="card-title">Weight &amp; Reps Over Time</div>
+            <canvas class="chart-canvas" id="wr-chart"></canvas>
+            <div class="chart-legend" id="wr-legend"></div>
         </div>` : ''}
         ${hasVol ? `<div class="card">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                <div class="card-title" style="margin:0">Volume Per Session</div>
-                <button class="chart-toggle-btn" id="vol-pb-toggle-btn" onclick="toggleChart('vol-pb-slide','vol-pb-toggle-btn')">📊 Show</button>
-            </div>
-            <div class="chart-slide" id="vol-pb-slide">
-                <canvas class="chart-canvas" id="vol-chart"></canvas>
-            </div>
+            <div class="card-title">Volume Per Session</div>
+            <canvas class="chart-canvas" id="vol-chart"></canvas>
         </div>` : ''}
         <div class="card">
             <div class="card-title">All Sessions (${entries.length})</div>
@@ -2204,11 +2172,6 @@ let copyFromDate = null;
 
 function renderCal() {
     updateStats();
-    renderMuscleStats();
-    renderWeeklyVolume();
-    renderHeatmap();
-    renderSessionSplit();
-    renderRadarChart();
     document.getElementById('cal-label').textContent = MONTHS[calMonth] + ' ' + calYear;
 
     const grid = document.getElementById('cal-grid');
@@ -3109,7 +3072,26 @@ function deleteTag(idx) {
 }
 
 // ============================
-// CHART TOGGLE
+// STATS PAGE
+// ============================
+function renderStats() {
+    renderLifetimeStats();
+    renderRecentPBs();
+    renderWeeklyVolume();
+    renderHeatmap();
+    renderSessionSplit();
+    renderMuscleStats();
+    renderRadarChart();
+    buildExTrendSel();
+
+    // Show empty state only if no data at all
+    const hasAny = !!Object.keys(getWO()).length;
+    const empty = document.getElementById('stats-empty');
+    if (empty) empty.style.display = hasAny ? 'none' : '';
+}
+
+// ============================
+// CHART TOGGLE (kept for any future use)
 // ============================
 function toggleChart(slideId, btnId) {
     const slide = document.getElementById(slideId);
@@ -3487,14 +3469,6 @@ function renderExTrend() {
         });
     });
     if (!entries.length) return;
-
-    // Auto-open chart slide
-    const slide = document.getElementById('trend-slide');
-    const btn   = document.getElementById('trend-toggle-btn');
-    if (slide && !slide.classList.contains('open')) {
-        slide.classList.add('open');
-        if (btn) { btn.classList.add('open'); btn.textContent = '📊 Hide'; }
-    }
 
     requestAnimationFrame(() => {
         const c = document.getElementById('trend-chart');
