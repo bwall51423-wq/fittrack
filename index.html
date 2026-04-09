@@ -717,6 +717,32 @@
         .meas-bar-row { margin-bottom: 9px; }
         .meas-bar-track { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; margin-top: 3px; }
         .meas-bar-fill { height: 100%; border-radius: 3px; background: #9C27B0; transition: width 0.4s; }
+
+        /* ---- CHART TOGGLE ---- */
+        .chart-toggle-btn {
+            display: flex; align-items: center; gap: 4px;
+            padding: 5px 11px; border-radius: 16px;
+            border: 1px solid var(--border); background: transparent;
+            color: var(--text3); font-size: 11px; font-weight: 700;
+            cursor: pointer; font-family: inherit; transition: all 0.15s;
+            white-space: nowrap; flex-shrink: 0;
+        }
+        .chart-toggle-btn.open { border-color: var(--primary); color: var(--primary); background: rgba(255,107,53,0.07); }
+        .chart-slide { max-height: 0; overflow: hidden; transition: max-height 0.35s ease; }
+        .chart-slide.open { max-height: 520px; }
+
+        /* ---- CALENDAR DOT COLOURS ---- */
+        .cal-day[data-wtype="w"]::after { background: var(--primary); }
+        .cal-day[data-wtype="c"]::after { background: var(--blue); }
+        .cal-day[data-wtype="b"]::after { background: var(--primary); box-shadow: 7px 0 0 0 var(--blue); }
+
+        /* ---- HEATMAP ---- */
+        .heatmap-canvas { height: 110px; display: block; width: 100%; }
+
+        /* ---- PIE / RADAR ---- */
+        .radar-canvas { width: 100%; height: 220px; display: block; }
+        .pie-canvas   { width: 100%; height: 180px; display: block; }
+        .pie-legend   { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; justify-content: center; }
     </style>
 </head>
 <body>
@@ -807,6 +833,20 @@
 
         <button class="btn btn-primary" onclick="saveAndSummarise()">Save Workout</button>
         <button class="btn btn-outline" onclick="clearWorkout()">New / Clear</button>
+
+        <div class="card" id="ex-trend-card" style="display:none">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div class="card-title" style="margin:0">Exercise Trend</div>
+                <button class="chart-toggle-btn" id="trend-toggle-btn" onclick="toggleChart('trend-slide','trend-toggle-btn')">📊 Show</button>
+            </div>
+            <div class="field" style="margin-bottom:8px">
+                <select id="trend-ex-sel" onchange="renderExTrend()" style="font-size:13px"></select>
+            </div>
+            <div class="chart-slide" id="trend-slide">
+                <canvas class="chart-canvas" id="trend-chart"></canvas>
+                <div class="chart-legend" id="trend-legend"></div>
+            </div>
+        </div>
     </div>
 
     <!-- ============================================================
@@ -839,8 +879,56 @@
         </div>
 
         <div class="card" id="weekly-vol-card" style="display:none">
-            <div class="card-title">Weekly Volume (kg)</div>
-            <canvas class="chart-canvas" id="weekly-vol-chart"></canvas>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div class="card-title" style="margin:0">Weekly Volume (kg)</div>
+                <div style="display:flex;align-items:center;gap:6px">
+                    <div class="period-row">
+                        <button class="period-btn active" id="volp-4w" onclick="setVolPeriod(4)">4W</button>
+                        <button class="period-btn" id="volp-8w" onclick="setVolPeriod(8)">8W</button>
+                        <button class="period-btn" id="volp-12w" onclick="setVolPeriod(12)">12W</button>
+                    </div>
+                    <button class="chart-toggle-btn" id="vol-toggle-btn" onclick="toggleChart('vol-chart-slide','vol-toggle-btn')">📊 Show</button>
+                </div>
+            </div>
+            <div class="chart-slide" id="vol-chart-slide">
+                <canvas class="chart-canvas" id="weekly-vol-chart"></canvas>
+            </div>
+        </div>
+
+        <div class="card" id="heatmap-card" style="display:none">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div class="card-title" style="margin:0">Workout Frequency</div>
+                <button class="chart-toggle-btn" id="heatmap-toggle-btn" onclick="toggleChart('heatmap-slide','heatmap-toggle-btn')">📊 Show</button>
+            </div>
+            <div class="chart-slide" id="heatmap-slide">
+                <canvas class="heatmap-canvas" id="heatmap-chart"></canvas>
+                <div style="display:flex;gap:14px;margin-top:8px;justify-content:center;font-size:10px;color:var(--text3)">
+                    <div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:2px;background:var(--primary)"></div>Weights</div>
+                    <div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:2px;background:var(--blue)"></div>Cardio</div>
+                    <div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:2px;background:#9C27B0"></div>Mixed</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="session-split-card" style="display:none">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div class="card-title" style="margin:0">Session Split</div>
+                <button class="chart-toggle-btn" id="split-toggle-btn" onclick="toggleChart('split-slide','split-toggle-btn')">📊 Show</button>
+            </div>
+            <div class="chart-slide" id="split-slide">
+                <canvas class="pie-canvas" id="split-chart"></canvas>
+                <div class="pie-legend" id="split-legend"></div>
+            </div>
+        </div>
+
+        <div class="card" id="radar-card" style="display:none">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div class="card-title" style="margin:0">Muscle Group Focus</div>
+                <button class="chart-toggle-btn" id="radar-toggle-btn" onclick="toggleChart('radar-slide','radar-toggle-btn')">📊 Show</button>
+            </div>
+            <div class="chart-slide" id="radar-slide">
+                <canvas class="radar-canvas" id="radar-chart"></canvas>
+            </div>
         </div>
 
         <div id="muscle-stats-card" class="card" style="display:none">
@@ -877,17 +965,22 @@
         </div>
 
         <div class="card">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
                 <div class="card-title" style="margin:0">Progress</div>
-                <div class="period-row">
-                    <button class="period-btn active" id="bwp-1m" onclick="setBWPeriod('1m')">1M</button>
-                    <button class="period-btn" id="bwp-3m" onclick="setBWPeriod('3m')">3M</button>
-                    <button class="period-btn" id="bwp-6m" onclick="setBWPeriod('6m')">6M</button>
-                    <button class="period-btn" id="bwp-all" onclick="setBWPeriod('all')">All</button>
+                <div style="display:flex;align-items:center;gap:6px">
+                    <div class="period-row">
+                        <button class="period-btn active" id="bwp-1m" onclick="setBWPeriod('1m')">1M</button>
+                        <button class="period-btn" id="bwp-3m" onclick="setBWPeriod('3m')">3M</button>
+                        <button class="period-btn" id="bwp-6m" onclick="setBWPeriod('6m')">6M</button>
+                        <button class="period-btn" id="bwp-all" onclick="setBWPeriod('all')">All</button>
+                    </div>
+                    <button class="chart-toggle-btn" id="bw-toggle-btn" onclick="toggleChart('bw-chart-slide','bw-toggle-btn')">📊 Show</button>
                 </div>
             </div>
-            <canvas class="chart-canvas" id="bw-chart"></canvas>
-            <div class="chart-legend" id="bw-legend"></div>
+            <div class="chart-slide" id="bw-chart-slide">
+                <canvas class="chart-canvas" id="bw-chart"></canvas>
+                <div class="chart-legend" id="bw-legend"></div>
+            </div>
         </div>
 
         <div class="card">
@@ -939,11 +1032,16 @@
         </div>
 
         <div class="card">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
                 <div class="card-title" style="margin:0">Measurements</div>
-                <select id="meas-type-chart" onchange="measChartType=this.value;renderMeasSection()" style="font-size:12px;padding:5px 8px;width:auto;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text)"></select>
+                <div style="display:flex;align-items:center;gap:6px">
+                    <select id="meas-type-chart" onchange="measChartType=this.value;renderMeasSection()" style="font-size:12px;padding:5px 8px;width:auto;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text)"></select>
+                    <button class="chart-toggle-btn" id="meas-toggle-btn" onclick="toggleChart('meas-chart-slide','meas-toggle-btn')">📊 Show</button>
+                </div>
             </div>
-            <canvas class="chart-canvas" id="meas-chart"></canvas>
+            <div class="chart-slide" id="meas-chart-slide">
+                <canvas class="chart-canvas" id="meas-chart"></canvas>
+            </div>
             <div id="meas-history" style="margin-top:10px"></div>
         </div>
 
@@ -959,6 +1057,16 @@
          PBs PAGE
     ============================================================ -->
     <div id="page-pbs" class="page">
+
+        <div class="card" id="lifetime-stats-card" style="display:none">
+            <div class="card-title">Lifetime Stats</div>
+            <div id="lifetime-stats-content"></div>
+        </div>
+
+        <div class="card" id="recent-pbs-card" style="display:none">
+            <div class="card-title">Recent PBs</div>
+            <div id="recent-pbs-list"></div>
+        </div>
 
         <div class="card">
             <div class="card-title">Exercise</div>
@@ -1544,6 +1652,8 @@ function buildPBSel() {
     });
     if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
     renderPB();
+    renderRecentPBs();
+    renderLifetimeStats();
 }
 
 function renderPB() {
@@ -1642,6 +1752,11 @@ function renderPBWeighted(entries) {
         </div>`;
     });
 
+    // Progression — running best weight over time
+    let runMax = 0;
+    const progData = chartEntries.map(e => { const w = parseFloat(e.c)||0; if (w > runMax) runMax = w; return runMax; });
+    const hasProgression = progData.length >= 2 && progData[0] !== progData[progData.length - 1];
+
     document.getElementById('pb-result').innerHTML = `
         <div class="pb-trophy">
             <div class="pb-trophy-icon">🏆</div>
@@ -1655,14 +1770,33 @@ function renderPBWeighted(entries) {
             <button class="btn btn-outline btn-sm" onclick="goToDate('${pb.date}')" style="margin:0;width:auto;display:inline-block;padding:9px 22px">View Workout</button>
         </div>
         ${rmHtml}
+        ${hasProgression ? `<div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div class="card-title" style="margin:0">PB Progression</div>
+                <button class="chart-toggle-btn" id="prog-toggle-btn" onclick="toggleChart('prog-slide','prog-toggle-btn')">📊 Show</button>
+            </div>
+            <div class="chart-slide" id="prog-slide">
+                <canvas class="chart-canvas" id="prog-chart"></canvas>
+            </div>
+        </div>` : ''}
         ${hasWeight ? `<div class="card">
-            <div class="card-title">Weight &amp; Reps Over Time</div>
-            <canvas class="chart-canvas" id="wr-chart"></canvas>
-            <div class="chart-legend" id="wr-legend"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div class="card-title" style="margin:0">Weight &amp; Reps Over Time</div>
+                <button class="chart-toggle-btn" id="wr-toggle-btn" onclick="toggleChart('wr-chart-slide','wr-toggle-btn')">📊 Show</button>
+            </div>
+            <div class="chart-slide" id="wr-chart-slide">
+                <canvas class="chart-canvas" id="wr-chart"></canvas>
+                <div class="chart-legend" id="wr-legend"></div>
+            </div>
         </div>` : ''}
         ${hasVol ? `<div class="card">
-            <div class="card-title">Volume Per Session (sets × reps × kg)</div>
-            <canvas class="chart-canvas" id="vol-chart"></canvas>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div class="card-title" style="margin:0">Volume Per Session</div>
+                <button class="chart-toggle-btn" id="vol-pb-toggle-btn" onclick="toggleChart('vol-pb-slide','vol-pb-toggle-btn')">📊 Show</button>
+            </div>
+            <div class="chart-slide" id="vol-pb-slide">
+                <canvas class="chart-canvas" id="vol-chart"></canvas>
+            </div>
         </div>` : ''}
         <div class="card">
             <div class="card-title">All Sessions (${entries.length})</div>
@@ -1670,6 +1804,10 @@ function renderPBWeighted(entries) {
         </div>`;
 
     requestAnimationFrame(() => {
+        if (hasProgression) {
+            const c = document.getElementById('prog-chart');
+            if (c) drawLineChart(c, [{ data: progData, color: '#4CAF50', label: 'Best Weight (kg)' }], chartLabels);
+        }
         if (hasWeight) {
             const c = document.getElementById('wr-chart');
             if (c) {
@@ -2068,6 +2206,9 @@ function renderCal() {
     updateStats();
     renderMuscleStats();
     renderWeeklyVolume();
+    renderHeatmap();
+    renderSessionSplit();
+    renderRadarChart();
     document.getElementById('cal-label').textContent = MONTHS[calMonth] + ' ' + calYear;
 
     const grid = document.getElementById('cal-grid');
@@ -2094,7 +2235,12 @@ function renderCal() {
         el.className = 'cal-day';
         el.textContent = d;
         if (ds === todayStr) el.classList.add('today');
-        if (wo[ds]) el.classList.add('has-workout');
+        if (wo[ds]) {
+            el.classList.add('has-workout');
+            const hasW = (wo[ds].exercises || []).some(e => e.rowType !== 'cardio');
+            const hasC = (wo[ds].exercises || []).some(e => e.rowType === 'cardio');
+            el.dataset.wtype = (hasW && hasC) ? 'b' : hasC ? 'c' : 'w';
+        }
         if (ds === calSel) el.classList.add('selected');
         el.onclick = () => { calSel = ds; renderCal(); };
         grid.appendChild(el);
@@ -2419,6 +2565,7 @@ function saveAndSummarise() {
     };
     saveWO(wo);
     renderCal();
+    buildExTrendSel();
     showWorkoutSummary(date, wo[date], pbs);
 }
 
@@ -2489,10 +2636,21 @@ function showWorkoutSummary(date, wo, pbs) {
 // ============================
 // WEEKLY VOLUME CHART
 // ============================
+let volPeriod = 4;
+
+function setVolPeriod(weeks) {
+    volPeriod = weeks;
+    [4, 8, 12].forEach(w => {
+        const btn = document.getElementById(`volp-${w}w`);
+        if (btn) btn.classList.toggle('active', w === weeks);
+    });
+    renderWeeklyVolume();
+}
+
 function renderWeeklyVolume() {
     const wo = getWO();
     const labels = [], data = [];
-    for (let i = 11; i >= 0; i--) {
+    for (let i = volPeriod - 1; i >= 0; i--) {
         const mon = new Date();
         const dow = mon.getDay();
         mon.setDate(mon.getDate() - (dow === 0 ? 6 : dow - 1) - i * 7);
@@ -2951,6 +3109,409 @@ function deleteTag(idx) {
 }
 
 // ============================
+// CHART TOGGLE
+// ============================
+function toggleChart(slideId, btnId) {
+    const slide = document.getElementById(slideId);
+    const btn   = document.getElementById(btnId);
+    if (!slide) return;
+    const isOpen = slide.classList.toggle('open');
+    if (btn) {
+        btn.classList.toggle('open', isOpen);
+        btn.textContent = isOpen ? '📊 Hide' : '📊 Show';
+    }
+}
+
+// ============================
+// HEATMAP
+// ============================
+function renderHeatmap() {
+    const wo = getWO();
+    const card = document.getElementById('heatmap-card');
+    if (!card) return;
+    if (!Object.keys(wo).length) { card.style.display = 'none'; return; }
+    card.style.display = '';
+
+    requestAnimationFrame(() => {
+        const canvas = document.getElementById('heatmap-chart');
+        if (!canvas) return;
+        const dpr = window.devicePixelRatio || 1;
+        const cw  = canvas.offsetWidth;
+        const ch  = canvas.offsetHeight;
+        canvas.width  = cw * dpr;
+        canvas.height = ch * dpr;
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+
+        const WEEKS = 26, DAYS = 7;
+        const pad = { top: 18, left: 22, right: 2, bottom: 2 };
+        const gridW = cw - pad.left - pad.right;
+        const gridH = ch - pad.top  - pad.bottom;
+        const cellW = gridW / WEEKS;
+        const cellH = gridH / DAYS;
+        const gap   = 2;
+
+        const now = new Date();
+        const startDate = new Date(now);
+        const dow = now.getDay();
+        startDate.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1) - (WEEKS - 1) * 7);
+        startDate.setHours(0, 0, 0, 0);
+
+        // Month labels
+        ctx.font = `10px -apple-system,sans-serif`;
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.textAlign = 'left';
+        let lastMo = -1;
+        for (let w = 0; w < WEEKS; w++) {
+            const d = new Date(startDate);
+            d.setDate(startDate.getDate() + w * 7);
+            if (d.getMonth() !== lastMo) {
+                lastMo = d.getMonth();
+                ctx.fillText(d.toLocaleDateString('en-GB', { month: 'short' }), pad.left + w * cellW, pad.top - 4);
+            }
+        }
+        // Day labels
+        ctx.textAlign = 'right';
+        ['M','','W','','F','','S'].forEach((lbl, i) => {
+            if (lbl) ctx.fillText(lbl, pad.left - 3, pad.top + i * cellH + cellH * 0.72);
+        });
+
+        // Cells
+        for (let w = 0; w < WEEKS; w++) {
+            for (let d = 0; d < DAYS; d++) {
+                const date = new Date(startDate);
+                date.setDate(startDate.getDate() + w * 7 + d);
+                if (date > now) continue;
+                const ds = date.toISOString().slice(0, 10);
+                const workout = wo[ds];
+
+                let fill = 'rgba(255,255,255,0.04)';
+                if (workout) {
+                    const hasW = (workout.exercises || []).some(e => e.rowType !== 'cardio');
+                    const hasC = (workout.exercises || []).some(e => e.rowType === 'cardio');
+                    if (hasW && hasC) fill = 'rgba(147,78,148,0.8)';
+                    else if (hasC)   fill = 'rgba(33,150,243,0.75)';
+                    else             fill = 'rgba(255,107,53,0.8)';
+                }
+
+                const x = pad.left + w * cellW + gap / 2;
+                const y = pad.top  + d * cellH + gap / 2;
+                const cWidth  = cellW - gap;
+                const cHeight = cellH - gap;
+                ctx.fillStyle = fill;
+                ctx.beginPath();
+                if (ctx.roundRect) ctx.roundRect(x, y, cWidth, cHeight, 2);
+                else ctx.rect(x, y, cWidth, cHeight);
+                ctx.fill();
+            }
+        }
+    });
+}
+
+// ============================
+// SESSION SPLIT PIE
+// ============================
+function drawPieChart(canvas, vals, colors) {
+    const dpr = window.devicePixelRatio || 1;
+    const cw  = canvas.offsetWidth;
+    const ch  = canvas.offsetHeight;
+    canvas.width  = cw * dpr;
+    canvas.height = ch * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    const total = vals.reduce((s, v) => s + v, 0);
+    if (!total) return;
+    const cx = cw / 2, cy = ch / 2;
+    const r  = Math.min(cw, ch) * 0.38;
+
+    let angle = -Math.PI / 2;
+    vals.forEach((v, i) => {
+        const slice = (v / total) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, r, angle, angle + slice);
+        ctx.closePath();
+        ctx.fillStyle = colors[i];
+        ctx.fill();
+        const pct = Math.round(v / total * 100);
+        if (pct >= 8) {
+            const mid = angle + slice / 2;
+            ctx.fillStyle = '#fff';
+            ctx.font = `bold 11px -apple-system,sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(pct + '%', cx + Math.cos(mid) * r * 0.65, cy + Math.sin(mid) * r * 0.65);
+        }
+        angle += slice;
+    });
+    // Donut hole
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 0.42, 0, Math.PI * 2);
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#141414';
+    ctx.fill();
+}
+
+function renderSessionSplit() {
+    const wo   = getWO();
+    const card = document.getElementById('session-split-card');
+    if (!card) return;
+    const keys = Object.keys(wo);
+    if (!keys.length) { card.style.display = 'none'; return; }
+
+    let wSess = 0, cSess = 0, mSess = 0;
+    keys.forEach(date => {
+        const w    = wo[date];
+        const hasW = (w.exercises || []).some(e => e.rowType !== 'cardio');
+        const hasC = (w.exercises || []).some(e => e.rowType === 'cardio');
+        if (hasW && hasC) mSess++;
+        else if (hasC) cSess++;
+        else wSess++;
+    });
+
+    const raw    = [wSess, cSess, mSess];
+    const colors = ['#FF6B35', '#2196F3', '#9C27B0'];
+    const lbls   = ['Weights', 'Cardio', 'Mixed'];
+    const vals   = raw.filter(v => v > 0);
+    const cols   = colors.filter((_, i) => raw[i] > 0);
+    const labels = lbls.filter((_, i) => raw[i] > 0);
+
+    if (!vals.length) { card.style.display = 'none'; return; }
+    card.style.display = '';
+
+    requestAnimationFrame(() => {
+        const c = document.getElementById('split-chart');
+        if (c) drawPieChart(c, vals, cols);
+        const leg = document.getElementById('split-legend');
+        if (leg) leg.innerHTML = labels.map((l, i) =>
+            `<div class="legend-item"><div class="legend-dot" style="background:${cols[i]}"></div>${l} (${vals[i]})</div>`
+        ).join('');
+    });
+}
+
+// ============================
+// RADAR CHART
+// ============================
+function drawRadarChart(canvas, data, labels) {
+    const dpr = window.devicePixelRatio || 1;
+    const cw  = canvas.offsetWidth;
+    const ch  = canvas.offsetHeight;
+    canvas.width  = cw * dpr;
+    canvas.height = ch * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    const n    = labels.length;
+    if (n < 3) return;
+    const cx   = cw / 2, cy = ch / 2;
+    const maxR = Math.min(cw, ch) * 0.34;
+    const maxV = Math.max(...data) || 1;
+    const ang  = i => (i / n) * Math.PI * 2 - Math.PI / 2;
+    const px   = (i, r) => cx + Math.cos(ang(i)) * r;
+    const py   = (i, r) => cy + Math.sin(ang(i)) * r;
+
+    // Grid rings
+    for (let ring = 1; ring <= 4; ring++) {
+        const r = (ring / 4) * maxR;
+        ctx.beginPath();
+        for (let i = 0; i < n; i++) { i === 0 ? ctx.moveTo(px(i,r), py(i,r)) : ctx.lineTo(px(i,r), py(i,r)); }
+        ctx.closePath();
+        ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+        ctx.lineWidth = 1; ctx.stroke();
+    }
+    // Spokes
+    for (let i = 0; i < n; i++) {
+        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px(i, maxR), py(i, maxR));
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1; ctx.stroke();
+    }
+    // Data polygon
+    ctx.beginPath();
+    data.forEach((v, i) => {
+        const r = (v / maxV) * maxR;
+        i === 0 ? ctx.moveTo(px(i,r), py(i,r)) : ctx.lineTo(px(i,r), py(i,r));
+    });
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255,107,53,0.22)'; ctx.fill();
+    ctx.strokeStyle = '#FF6B35'; ctx.lineWidth = 2; ctx.stroke();
+    // Dots
+    data.forEach((v, i) => {
+        const r = (v / maxV) * maxR;
+        ctx.beginPath(); ctx.arc(px(i,r), py(i,r), 3, 0, Math.PI*2);
+        ctx.fillStyle = '#FF6B35'; ctx.fill();
+    });
+    // Labels
+    ctx.font = `10px -apple-system,sans-serif`;
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    labels.forEach((lbl, i) => {
+        const r = maxR + 18;
+        ctx.fillText(lbl.length > 9 ? lbl.slice(0,8) + '…' : lbl, px(i,r), py(i,r));
+    });
+}
+
+function renderRadarChart() {
+    const wo   = getWO();
+    const card = document.getElementById('radar-card');
+    if (!card) return;
+    const counts = {};
+    Object.values(wo).forEach(w => {
+        (w.exercises || []).forEach(ex => {
+            (ex.tags || []).forEach(t => { counts[t] = (counts[t] || 0) + 1; });
+        });
+    });
+    const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0, 8);
+    if (sorted.length < 3) { card.style.display = 'none'; return; }
+    card.style.display = '';
+    requestAnimationFrame(() => {
+        const c = document.getElementById('radar-chart');
+        if (c) drawRadarChart(c, sorted.map(([,v])=>v), sorted.map(([t])=>t));
+    });
+}
+
+// ============================
+// RECENT PBs + LIFETIME STATS
+// ============================
+function renderRecentPBs() {
+    const wo   = getWO();
+    const card = document.getElementById('recent-pbs-card');
+    const list = document.getElementById('recent-pbs-list');
+    if (!card || !list) return;
+
+    const exMap = {};
+    Object.entries(wo).sort((a,b) => a[0].localeCompare(b[0])).forEach(([date, w]) => {
+        (w.exercises || []).forEach(ex => {
+            if (ex.rowType === 'cardio') return;
+            const name = ex.name.trim();
+            if (!name) return;
+            const weight = parseFloat(ex.c) || 0;
+            if (!weight) return;
+            if (!exMap[name]) exMap[name] = { maxW: 0, pbs: [] };
+            if (weight > exMap[name].maxW) {
+                exMap[name].maxW = weight;
+                exMap[name].pbs.push({ date, w: weight, r: parseFloat(ex.b) || 0 });
+            }
+        });
+    });
+
+    const all = [];
+    Object.entries(exMap).forEach(([name, data]) => data.pbs.forEach(pb => all.push({ name, ...pb })));
+    all.sort((a,b) => b.date.localeCompare(a.date));
+    const recent = all.slice(0, 8);
+
+    if (!recent.length) { card.style.display = 'none'; return; }
+    card.style.display = '';
+    list.innerHTML = recent.map(pb => `
+        <div class="hist-row" style="cursor:pointer" onclick="goToDate('${pb.date}')">
+            <div>
+                <div style="font-size:13px;font-weight:700">${esc(pb.name)}</div>
+                <div class="hist-date">${fmtDate(pb.date)}</div>
+            </div>
+            <div style="text-align:right">
+                <div style="font-size:16px;font-weight:800;color:var(--primary)">${pb.w}kg</div>
+                ${pb.r ? `<div style="font-size:11px;color:var(--text3)">${pb.r} reps</div>` : ''}
+            </div>
+        </div>`).join('');
+}
+
+function renderLifetimeStats() {
+    const wo   = getWO();
+    const card = document.getElementById('lifetime-stats-card');
+    const el   = document.getElementById('lifetime-stats-content');
+    if (!card || !el) return;
+    const keys = Object.keys(wo);
+    if (!keys.length) { card.style.display = 'none'; return; }
+    card.style.display = '';
+
+    let totalVol = 0, totalReps = 0;
+    keys.forEach(date => {
+        (wo[date].exercises || []).forEach(ex => {
+            if (ex.rowType !== 'cardio') {
+                const sets = parseFloat(ex.a)||0, reps = parseFloat(ex.b)||0, wt = parseFloat(ex.c)||0;
+                totalVol  += sets * reps * wt;
+                totalReps += sets * reps;
+            }
+        });
+    });
+
+    const volStr = totalVol >= 1e6 ? (totalVol/1000).toFixed(0)+'t'
+                 : totalVol >= 1000 ? (totalVol/1000).toFixed(1)+'t'
+                 : Math.round(totalVol)+'kg';
+    const repStr = totalReps >= 1000 ? (totalReps/1000).toFixed(1)+'k' : totalReps;
+
+    let comp = '';
+    if (totalVol >= 7300000) comp = `${(totalVol/7300000).toFixed(2)}× the Eiffel Tower 🗼`;
+    else if (totalVol >= 5000) comp = `${Math.floor(totalVol/5000)} elephant${Math.floor(totalVol/5000)!==1?'s':''} 🐘`;
+    else if (totalVol >= 1500) comp = `${(totalVol/1500).toFixed(1)} cars 🚗`;
+    else if (totalVol >= 80)   comp = `${Math.floor(totalVol/80)} people 🧑`;
+
+    el.innerHTML = `
+        <div class="stats-row" style="margin-bottom:${comp?'10px':'0'}">
+            <div class="stat-box"><div class="stat-num" style="font-size:22px">${keys.length}</div><div class="stat-lbl">Sessions</div></div>
+            <div class="stat-box"><div class="stat-num" style="font-size:20px">${volStr}</div><div class="stat-lbl">Volume</div></div>
+            <div class="stat-box"><div class="stat-num" style="font-size:20px">${repStr}</div><div class="stat-lbl">Reps</div></div>
+        </div>
+        ${comp ? `<div style="font-size:12px;color:var(--text2);text-align:center;padding:8px 0;border-top:1px solid var(--border)">You've lifted the weight of ${comp}</div>` : ''}`;
+}
+
+// ============================
+// EXERCISE TREND (WORKOUT PAGE)
+// ============================
+function buildExTrendSel() {
+    const wo  = getWO();
+    const sel = document.getElementById('trend-ex-sel');
+    const card = document.getElementById('ex-trend-card');
+    if (!sel || !card) return;
+    const seen = new Set();
+    Object.values(wo).forEach(w => {
+        (w.exercises || []).forEach(ex => {
+            if (ex.rowType !== 'cardio' && ex.name.trim()) seen.add(ex.name.trim());
+        });
+    });
+    const sorted = [...seen].sort((a,b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+    sel.innerHTML = '<option value="">Select exercise…</option>' +
+        sorted.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+    card.style.display = sorted.length ? '' : 'none';
+}
+
+function renderExTrend() {
+    const sel = document.getElementById('trend-ex-sel');
+    if (!sel || !sel.value) return;
+    const wo = getWO();
+    const entries = [];
+    Object.entries(wo).sort((a,b) => a[0].localeCompare(b[0])).forEach(([date, w]) => {
+        (w.exercises || []).forEach(ex => {
+            if (ex.name.trim().toLowerCase() === sel.value.toLowerCase() && ex.rowType !== 'cardio') {
+                const weight = parseFloat(ex.c) || 0;
+                if (weight > 0) entries.push({ date, weight, reps: parseFloat(ex.b)||0 });
+            }
+        });
+    });
+    if (!entries.length) return;
+
+    // Auto-open chart slide
+    const slide = document.getElementById('trend-slide');
+    const btn   = document.getElementById('trend-toggle-btn');
+    if (slide && !slide.classList.contains('open')) {
+        slide.classList.add('open');
+        if (btn) { btn.classList.add('open'); btn.textContent = '📊 Hide'; }
+    }
+
+    requestAnimationFrame(() => {
+        const c = document.getElementById('trend-chart');
+        if (!c) return;
+        const ds = [
+            { data: entries.map(e => e.weight), color: '#FF6B35', label: 'Weight (kg)' },
+            { data: entries.map(e => e.reps),   color: '#2196F3', label: 'Reps' }
+        ];
+        drawLineChart(c, ds, entries.map(e => e.date.slice(5)));
+        const leg = document.getElementById('trend-legend');
+        if (leg) leg.innerHTML = ds.map(d =>
+            `<div class="legend-item"><div class="legend-dot" style="background:${d.color}"></div>${d.label}</div>`
+        ).join('');
+    });
+}
+
+// ============================
 // MODALS
 // ============================
 function openOv(id) { document.getElementById(id).classList.add('open'); }
@@ -2977,6 +3538,7 @@ function init() {
     document.getElementById('t-round').textContent = `Round 1 of ${tCfg.rounds}`;
 
     applySettings();
+    buildExTrendSel();
 
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').catch(()=>{});
