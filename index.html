@@ -1652,23 +1652,34 @@ function showExHistory(name) {
 // ============================
 // EXERCISE ROW HISTORY BUTTON
 // ============================
+let _exRowHist = [];
+
 function openExRowHistory(btn) {
     const tr = btn.closest('tr');
     const name = tr.querySelector('.ex-input').value.trim();
     if (!name) { showToast('Enter an exercise name first'); return; }
     const wo = getWO();
-    const hist = [];
+    _exRowHist = [];
     Object.entries(wo).sort((a, b) => b[0].localeCompare(a[0])).forEach(([date, w]) => {
         (w.exercises || []).forEach(ex => {
             if (ex.name.toLowerCase() === name.toLowerCase()) {
-                hist.push({ date, ...ex, woType: w.type });
+                _exRowHist.push({ date, ...ex, woType: w.type });
             }
         });
     });
-    if (!hist.length) { showToast('No history for ' + name); return; }
+    if (!_exRowHist.length) { showToast('No history for ' + name); return; }
+    renderExRowHistory(name, 'last10');
+    openOv('ov-hist');
+}
+
+function renderExRowHistory(name, filter) {
+    const rows = filter === 'all' ? _exRowHist : _exRowHist.slice(0, 10);
     let html = `<div class="sheet-title">${esc(name)}</div>
-        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">Last 10 Sessions</div>`;
-    hist.slice(0, 10).forEach(h => {
+        <div style="display:flex;gap:6px;margin-bottom:14px">
+            <button class="period-btn${filter==='last10'?' active':''}" onclick="renderExRowHistory('${esc(name)}','last10')">Last 10</button>
+            <button class="period-btn${filter==='all'?' active':''}" onclick="renderExRowHistory('${esc(name)}','all')">All Time</button>
+        </div>`;
+    rows.forEach(h => {
         const isC = h.rowType === 'cardio' || (!h.rowType && h.woType === 'cardio');
         const detail = isC
             ? `${h.a || '—'} · ${h.b || '—'}`
@@ -1679,7 +1690,6 @@ function openExRowHistory(btn) {
         </div>`;
     });
     document.getElementById('ov-hist-content').innerHTML = html;
-    openOv('ov-hist');
 }
 
 // ============================
