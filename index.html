@@ -2089,6 +2089,113 @@ function drawLineChart(canvas, datasets, xLabels) {
     });
 }
 
+function drawDualAxisChart(canvas, weightData, bfData, xLabels) {
+    const dpr = window.devicePixelRatio || 1;
+    const cw  = canvas.offsetWidth;
+    const ch  = canvas.offsetHeight;
+    canvas.width  = cw * dpr;
+    canvas.height = ch * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    const hasBF = bfData && bfData.some(v => v != null);
+    const PAD = { top: 12, right: hasBF ? 38 : 12, bottom: 28, left: 42 };
+    const pw = cw - PAD.left - PAD.right;
+    const ph = ch - PAD.top  - PAD.bottom;
+    const n  = xLabels.length;
+
+    // --- Weight axis (left): tight 5kg window, expands if data spans more ---
+    const wVals = weightData.filter(v => v != null);
+    const wMin  = Math.min(...wVals);
+    const wMax  = Math.max(...wVals);
+    const wRange = wMax - wMin;
+    let yWMin, yWMax;
+    if (wRange <= 5) {
+        const mid = (wMin + wMax) / 2;
+        yWMin = mid - 2.5;
+        yWMax = mid + 2.5;
+    } else {
+        yWMin = wMin - wRange * 0.1;
+        yWMax = wMax + wRange * 0.1;
+    }
+
+    // --- BF axis (right): default 5–20%, expands to fit data ---
+    let yBFMin = 5, yBFMax = 20;
+    if (hasBF) {
+        const bfVals = bfData.filter(v => v != null);
+        const bfMin  = Math.min(...bfVals);
+        const bfMax  = Math.max(...bfVals);
+        yBFMin = Math.min(5,  bfMin - 1);
+        yBFMax = Math.max(20, bfMax + 1);
+        if (yBFMax - yBFMin < 15) {
+            const mid = (yBFMin + yBFMax) / 2;
+            yBFMin = mid - 7.5;
+            yBFMax = mid + 7.5;
+        }
+    }
+
+    const toX   = i => PAD.left + (n > 1 ? (i / (n - 1)) * pw : pw / 2);
+    const toYW  = v => PAD.top  + (1 - (v - yWMin)  / (yWMax  - yWMin))  * ph;
+    const toYBF = v => PAD.top  + (1 - (v - yBFMin) / (yBFMax - yBFMin)) * ph;
+
+    ctx.font = '10px -apple-system,sans-serif';
+
+    // Grid + left (weight) labels
+    for (let i = 0; i <= 4; i++) {
+        const y   = PAD.top + (i / 4) * ph;
+        const val = yWMax - (i / 4) * (yWMax - yWMin);
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+        ctx.lineWidth   = 1;
+        ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + pw, y); ctx.stroke();
+        ctx.fillStyle  = 'rgba(255,107,53,0.75)';
+        ctx.textAlign  = 'right';
+        ctx.fillText(Math.round(val * 10) / 10, PAD.left - 4, y + 4);
+    }
+
+    // Right (BF) labels
+    if (hasBF) {
+        for (let i = 0; i <= 4; i++) {
+            const y   = PAD.top + (i / 4) * ph;
+            const val = yBFMax - (i / 4) * (yBFMax - yBFMin);
+            ctx.fillStyle = 'rgba(33,150,243,0.75)';
+            ctx.textAlign = 'left';
+            ctx.fillText(Math.round(val * 10) / 10 + '%', PAD.left + pw + 4, y + 4);
+        }
+    }
+
+    // X labels
+    const xStep = Math.max(1, Math.ceil(n / 6));
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.textAlign = 'center';
+    xLabels.forEach((lbl, i) => {
+        if (i === 0 || i === n - 1 || i % xStep === 0)
+            ctx.fillText(lbl, toX(i), ch - PAD.bottom + 14);
+    });
+
+    // Draw weight line
+    const drawLine = (pts, color) => {
+        ctx.strokeStyle = color; ctx.lineWidth = 2;
+        ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+        ctx.beginPath();
+        let started = false;
+        pts.forEach(pt => {
+            if (!pt) { started = false; return; }
+            if (!started) { ctx.moveTo(pt.x, pt.y); started = true; }
+            else ctx.lineTo(pt.x, pt.y);
+        });
+        ctx.stroke();
+        pts.forEach(pt => {
+            if (!pt) return;
+            ctx.beginPath(); ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
+            ctx.fillStyle = color; ctx.fill();
+        });
+    };
+
+    drawLine(weightData.map((v, i) => v != null ? { x: toX(i), y: toYW(v) }  : null), '#FF6B35');
+    if (hasBF)
+        drawLine(bfData.map((v, i)     => v != null ? { x: toX(i), y: toYBF(v) } : null), '#2196F3');
+}
+
 function drawBarChart(canvas, data, xLabels, color) {
     const dpr = window.devicePixelRatio || 1;
     const cw  = canvas.offsetWidth;
@@ -2215,16 +2322,19 @@ function renderBodyPage() {
     const chartData = filtered.length >= 2 ? filtered : entries.slice(-30);
     const hasBF = chartData.some(e => e.bf != null);
     if (chartData.length >= 2) {
-        const datasets = [
-            { data: chartData.map(e => e.w),   color: '#FF6B35', label: 'Weight (kg)' },
-            ...(hasBF ? [{ data: chartData.map(e => e.bf), color: '#2196F3', label: 'Body Fat %' }] : [])
-        ];
         const labels = chartData.map(e => e.date.slice(5));
         requestAnimationFrame(() => {
             const c = document.getElementById('bw-chart');
             if (c) {
-                drawLineChart(c, datasets, labels);
-                document.getElementById('bw-legend').innerHTML = datasets.map(ds =>
+                drawDualAxisChart(
+                    c,
+                    chartData.map(e => e.w),
+                    hasBF ? chartData.map(e => e.bf ?? null) : null,
+                    labels
+                );
+                const legend = [{ color: '#FF6B35', label: 'Weight (kg)' }];
+                if (hasBF) legend.push({ color: '#2196F3', label: 'Body Fat %' });
+                document.getElementById('bw-legend').innerHTML = legend.map(ds =>
                     `<div class="legend-item"><div class="legend-dot" style="background:${ds.color}"></div>${ds.label}</div>`
                 ).join('');
             }
